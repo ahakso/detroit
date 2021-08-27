@@ -31,29 +31,23 @@ def csv_with_x_y_to_gpd(fn: str, crs="EPSG:4326", drop_null_cols: bool = True, r
         df = df.loc[:, df.notnull().sum() != 0]
     return gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df["X"], df["Y"])).set_crs("EPSG:4326")
 
-def nearest_neighbor(a_df: pd.DataFrame, b_df: pd.DataFrame, target_nearness_rank: int=1, return_all_cols=False) -> pd.DataFrame:
+
+def nearest_neighbor(a_df: pd.DataFrame, b_df: pd.DataFrame, distance_upper_bound: int = 50, max_in_range_cameras=10) -> pd.DataFrame:
     """return nearest point in B to each point in A
-        
+
     both a_df and b_df must have a column called geometry with geopandas point values
     """
-    
-#     get coordinates for each
+
+    #     get coordinates for each
     locations_a = np.array(list(a_df.geometry.apply(lambda x: (x.x, x.y))))
     locations_b = np.array(list(b_df.geometry.apply(lambda x: (x.x, x.y))))
-#     generate nearest neighbor lookup tree for point in B
+    #     generate nearest neighbor lookup tree for point in B
     b_locations_map = KDTree(locations_b)
-#     calculate the nearest point in B for every A
-    dist_to_nearest_match, idx_in_b = b_locations_map.query(locations_a, k=[target_nearness_rank])
-    if return_all_cols:
-        b_nearest = b_df.iloc[idx_in_b.flatten()].drop(columns="geometry")
-        b_nearest.columns = [str(col) + '_neighbor' for col in b_nearest.columns]
-        gdf = pd.concat(
-            [
-                a_df.reset_index(drop=True),
-                b_nearest.reset_index(drop=True),
-                pd.Series(dist_to_nearest_match.flatten()*111139, name='meters_to_nearest_match')
-            ], 
-            axis=1)
-        return gdf
-    else:
-        return a_df.assign(meters_to_nearest_match=dist_to_nearest_match*111139, idx_in_b=idx_in_b)
+    #     calculate the first max_in_range closest cameras in B for every A closer than distance_upper_bound.
+    dist_to_nearest_match, idx_in_b = b_locations_map.query(locations_a, k=max_in_range_cameras, distance_upper_bound=distance_upper_bound / 82410)
+    # Get the first live date for within range cameras
+    first_live_in_range_date = [
+        [b_df.loc[idx_in_b[i_call][x], "live_day"] for x in range(max_in_range_cameras) if dist_to_nearest_match[i_call][x] != np.inf] for i_call in range(locations_a.shape[0])
+    ]
+    first_live_in_range_date = [min(x) if len(x) > 0 else np.nan for x in first_live_in_range_date]
+    return a_df.assign(date_first_live_camera=first_live_in_range_date)
