@@ -32,7 +32,7 @@ def csv_with_x_y_to_gpd(fn: str, crs="EPSG:4326", drop_null_cols: bool = True, r
     return gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df["X"], df["Y"])).set_crs("EPSG:4326")
 
 
-def nearest_neighbor(a_df: pd.DataFrame, b_df: pd.DataFrame, distance_upper_bound: int = 50, max_in_range_cameras=10) -> pd.DataFrame:
+def first_in_range_camera(a_df: pd.DataFrame, b_df: pd.DataFrame, distance_upper_bound: int = 50, max_in_range_cameras=10) -> pd.DataFrame:
     """return nearest point in B to each point in A
 
     both a_df and b_df must have a column called geometry with geopandas point values
