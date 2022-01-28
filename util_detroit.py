@@ -30,7 +30,20 @@ def csv_with_x_y_to_gpd(fn: str, crs="epsg:3857", drop_null_cols: bool = True, r
     df = pd.read_csv(fn if "csv" in fn else fn + ".csv", **read_csv_args)
     if drop_null_cols:
         df = df.loc[:, df.notnull().sum() != 0]
-    return gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df["X"], df["Y"])).set_crs(crs)
+    if "X" in df.columns:
+        lat_col = "X"
+    elif "latitude" in df.columns:
+        lat_col = "latitude"
+    else:
+        raise ValueError("No latitude column found")
+    if "Y" in df.columns:
+        lon_col = "Y"
+    elif "longitude" in df.columns:
+        lon_col = "longitude"
+    else:
+        raise ValueError("No longitude column found")
+
+    return gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df[lat_col], df[lon_col])).set_crs(crs)
 
 
 def first_in_range_camera(
