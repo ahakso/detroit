@@ -72,13 +72,16 @@ class Feature:
 
         raise NotImplementedError("construct_feature() must be implemented")
 
-    def assign_geo_column(self, df: pd.DataFrame, target_geo_grain: str) -> pd.DataFrame:
+    def assign_geo_column(self, target_geo_grain: str) -> pd.DataFrame:
         """
         Takes a dataframe with a block_id of the appropriate length and truncates or extends it to the desired granularity
         """
+
+        if target_geo_grain not in ("block", "block group", "tract"):
+            raise ValueError("target_geo_grain must be one of 'block', 'block group', 'tract'")
         GEO_ENTITY_INDEX_MAP = {"block": 15, "block group": 12, "tract": 11}
 
-        return df.assign(geo=lambda x: x.block_id.str[: GEO_ENTITY_INDEX_MAP[target_geo_grain]])
+        return self.clean_data.assign(geo=lambda x: x.block_id.str[: GEO_ENTITY_INDEX_MAP[target_geo_grain]])
 
     def validate_cleansed_data(self):
         """
@@ -179,7 +182,5 @@ class ViolenceCalls(Feature):
                 self.load_data()
             if self.clean_data is None:
                 self.cleanse_data()
-        if target_geo_grain not in ("block", "block group", "tract"):
-            raise ValueError("target_geo_grain must be one of 'lat/long', 'block', 'block group', 'tract'")
 
-        return self.clean_data.groupby("geo").oid.count().rename("n_violent_calls")
+        return self.assign_geo_column(target_geo_grain).groupby("geo").oid.count().rename("n_violent_calls")
