@@ -23,6 +23,21 @@ NEAR_PROXY_CALL_STRINGS = ["WITH WEAPON", "DV", "ABUSE", "BREAKING AND ENTERING"
 
 
 class Feature:
+    """Parent class from which additional features constructors inherit
+
+    This class is not intended to be used directly, but rather to be inherited from.
+    Feature standardization, imputation etc is better handled by 3rd party libraries, and should not be done here.
+    Features that require multiple data assets are not handled by this class. I suspect they can always be
+    combined downstream.
+
+    The following methods are required to be implemented:
+        - load_data(), which should be an opinionated import of the raw data, selecting appropriate columns, performing
+          obvious cleaning steps etc
+        - cleanse_data(), which should be where experimentation on the roughly cleaned data happens. block_id must be
+          assigned_here, and self.standardize_block_id() must be run
+        - construct_feature(), which should reshape the data to output a Series indexed by the geo entity.
+    """
+
     def __init__(self, meta=Dict) -> None:
         if meta.get("min_geo_grain") not in ("lat/long", "block", "block group", "tract"):
             raise ValueError("min_geo_grain must be one of 'lat/long', 'block', 'block group', 'tract'")
@@ -54,7 +69,8 @@ class Feature:
 
         Requires self.data to be populated, and assigns the result to self.clean_data
 
-        self.clean_data must be a dataframe, and must contain the column block_id, of type str
+        self.clean_data must be a dataframe, and must contain the column block_id, of type str and len(block_id) == 15
+        Use self.standardize_block_id() to standardize block_id to length 15
         """
         raise NotImplementedError("clean_data() must be implemented")
 
