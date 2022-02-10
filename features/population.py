@@ -10,11 +10,17 @@ class Population(Feature):
 
     Arguments:
         year -- decennial census year (affects both block_id and population counts)
-        data_path: path of population csv
-
+        data_path: base data path
+        population_data_path: path to population data *must be within data_path*
     """
 
-    def __init__(self, year: int, data_path: Optional[str] = ".", verbose: Optional[bool] = True) -> None:
+    def __init__(
+        self,
+        year: int,
+        data_path: Optional[str] = ".",
+        population_data_path: Optional[str] = "",
+        verbose: Optional[bool] = True,
+    ) -> None:
         self.year = year
         if year == 2020:
             source_url = "https://data.census.gov/cedsci/table?q=Population%20Total&t=Counts,%20Estimates,%20and%20Projections&g=0500000US26163%241000000&tid=DECENNIALPL2020.P1"
@@ -39,6 +45,7 @@ class Population(Feature):
             verbose=verbose,
         )
         self.year = year
+        self.population_data_path = data_path.rstrip("/") + "/" + population_data_path.rstrip("/") + "/"
 
     def load_data(self):
         if self.year == 2010:
@@ -47,7 +54,7 @@ class Population(Feature):
             cols = {"GEO_ID": "block_id", "P1_001N": "population"}
         self.data = (
             pd.read_csv(
-                self._data_path + self.meta.get("filename"),
+                self.population_data_path + self.meta.get("filename"),
                 usecols=cols.keys(),
                 skiprows=[1],
             )

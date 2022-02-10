@@ -35,7 +35,9 @@ def data_loader(func):
 
         if (self.index is None) or (self.index.name != target_geo_grain):
             if self.verbose:
-                print(f"Index doesn't exist or is of the wrong grain. Creating index on {target_geo_grain} grain")
+                print(
+                    f"Generate index not run, or was run on the wrong grain. Creating index on {target_geo_grain} grain"
+                )
             self.index = self.generate_index(target_geo_grain)
         return func(self, target_geo_grain)
 
