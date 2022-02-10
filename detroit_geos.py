@@ -1,7 +1,7 @@
 import geopandas as gpd
 
 
-def get_detroits_census_blocks(decennial_census_year: int) -> gpd.GeoDataFrame:
+def get_detroit_census_blocks(decennial_census_year: int, data_path: str = "./") -> gpd.GeoDataFrame:
     """
     Returns a geometries of the census blocks in Detroit for the given decennial census year.
 
@@ -15,9 +15,21 @@ def get_detroits_census_blocks(decennial_census_year: int) -> gpd.GeoDataFrame:
 
     :param decennial_census_year: The decennial census year to get the census blocks for.
     """
-    if decennial_census_year == 2020:
-        return gpd.read_file("detroit_census_blocks_2020/blocks_in_detroit.shp")
-    elif decennial_census_year == 2010:
-        return gpd.read_file("detroit_census_blocks_2010/blocks_in_detroit.shp")
+    if decennial_census_year == 2010:
+        df = gpd.read_file(data_path + "detroit_census_blocks_2010/blocks_in_detroit.shp")
+    elif decennial_census_year == 2020:
+        df = gpd.read_file(data_path + "detroit_census_blocks_2020/blocks_in_detroit_2020.shp")
     else:
         raise ValueError(f"decennial_census_year must be 2010 or 2020")
+    return df.to_crs("epsg:4327")
+
+
+def get_detroit_boundaries():
+    """
+    Returns a geometries of the city of Detroit boundaries.
+
+    The shape files read in are available on box in the directory kx-city-of-detroit-michigan-city-boundary-SHP
+
+    sourced from the following URL: https://koordinates.com/search/?q=detroit+city+boundary
+    """
+    return gpd.read_file("kx-city-of-detroit-michigan-city-boundary-SHP/city-of-detroit-michigan-city-boundary.shp")
