@@ -13,6 +13,8 @@ GEO_GRAIN_STR_LEN_MAP = {"block": 15, "block group": 12, "tract": 11}
 def cleanse_decorator(func):
     def standardize_and_validate(self, *args, **kwargs):
         self.clean_data = func(self)
+        if self.verbose:
+            print(f"clean data has {self.clean_data.shape[0]} rows")
         self.standardize_block_id()
         self.validate_cleansed_data()
 
@@ -23,11 +25,17 @@ def data_loader(func):
     def load_data(self, target_geo_grain):
         # def populate_data(self, *args, **kwargs):
         if self.data is None:
+            if self.verbose:
+                print("Data not yet loaded, loading all data")
             self.load_data()
         if self.clean_data is None:
+            if self.verbose:
+                print("Data not yet cleansed, cleaning")
             self.cleanse_data()
 
         if (self.index is None) or (self.index.name != target_geo_grain):
+            if self.verbose:
+                print(f"Index doesn't exist or is of the wrong grain. Creating index on {target_geo_grain} grain")
             self.index = self.generate_index(target_geo_grain)
         return func(self, target_geo_grain)
 
@@ -63,7 +71,13 @@ class Feature:
         - construct_feature(), which should reshape the data to output a Series indexed by the geo entity.
     """
 
-    def __init__(self, meta: Dict, data_path: Optional[str] = ".", decennial_census_year: Optional[int] = 2020) -> None:
+    def __init__(
+        self,
+        meta: Dict,
+        data_path: Optional[str] = ".",
+        decennial_census_year: Optional[int] = 2020,
+        verbose: Optional[bool] = True,
+    ) -> None:
         if meta.get("min_geo_grain") not in ("lat/long", "block", "block group", "tract"):
             raise ValueError("min_geo_grain must be one of 'lat/long', 'block', 'block group', 'tract'")
         self.meta = meta
@@ -72,6 +86,7 @@ class Feature:
         self.index = None
         self._data_path = data_path.rstrip("/") + "/"
         self._decennial_census_year = decennial_census_year
+        self.verbose = verbose
 
     def __repr__(self) -> str:
         meta = f"Function metadata:\n{pprint.pformat(self.meta)}"
@@ -122,13 +137,6 @@ class Feature:
         """
         raise NotImplementedError("clean_data() must be implemented")
 
-    # def cleanse_decorator(func):
-    # def standardize_and_validate(self, *args, **kwargs):
-    #     self.clean_data = func(self, *args, **kwargs)
-    #     self.standardize_block_id()
-    #     self.validate_cleansed_data()
-    #     print("decorator ran")
-
     def generate_index(self, target_geo_grain: str) -> pd.Index:
         """Reads in the census blocks in detroit and generates a pandas index for the target_geo_grain"""
         blocks = get_detroit_census_blocks(self._decennial_census_year, data_path=self._data_path)
@@ -146,6 +154,8 @@ class Feature:
         No additional munging of data should be carried out.
 
         Requires self.clean_data to be populated
+
+        we could implement a Tuple[pd.Series] return that indicates any filled nulls, but not clearly necessary
         """
 
         raise NotImplementedError("construct_feature() must be implemented")
@@ -179,7 +189,8 @@ class Feature:
             raise ValueError("block_id must be a string")
         if np.any(self.clean_data.block_id.str.len() != len(self.clean_data.block_id.iloc[0])):
             raise ValueError("block_id is of inconsistent length")
-        print("validator: block_id looks good")
+        if self.verbose:
+            print("cleansed data validator: block_id looks good")
 
     def standardize_block_id(self):
         """
