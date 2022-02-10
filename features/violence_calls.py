@@ -4,7 +4,7 @@ from typing import List, Optional, Union
 import geopandas as gpd
 import pandas as pd
 
-from features.feature_constructor import Feature
+from features.feature_constructor import Feature, cleanse_decorator, data_loader
 
 
 class ViolenceCalls(Feature):
@@ -93,31 +93,23 @@ class ViolenceCalls(Feature):
         self.data = calls
         print(f"Loaded {sample_rows:,} rows of data")
 
+    @cleanse_decorator
     def cleanse_data(self) -> None:
         self.clean_data = self.data.copy().dropna(subset=["block_id"])
-        self.standardize_block_id()
-        self.validate_cleansed_data()
+        return self.clean_data
 
     @classmethod
     def null_handler(s: pd.Series) -> pd.Series:
         return s.fillna(0)
 
-    def construct_feature(self, target_geo_grain: str, load_missing_data: bool = True) -> pd.Series:
+    @data_loader
+    def construct_feature(self, target_geo_grain: str) -> pd.Series:
         """Return a Series of counts of calls by geo entity
 
         target_geo_grain should be one of "block", "block group", "tract"
 
         By default, will load and cleanse data if not already done
         """
-        if load_missing_data:
-            if self.data is None:
-                self.load_data()
-            if self.clean_data is None:
-                self.cleanse_data()
-
-        if (self.index is None) or (self.index.name != target_geo_grain):
-            self.index = self.generate_index(target_geo_grain)
-
         n_violent_calls = (
             self.assign_geo_column(target_geo_grain).groupby("geo").oid.count().rename(self.meta.get("feature_name"))
         )
