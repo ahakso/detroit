@@ -1,11 +1,29 @@
-import pandas as pd
+import os.path
+from typing import Optional
+
 import geopandas as gpd
 import kml2geojson
-import os.path
 import numpy as np
+import pandas as pd
 from pandas.core.series import Series
-
 from scipy.spatial import KDTree
+
+from detroit_geos import get_detroit_census_blocks
+
+
+def point_to_block_id(
+    df: gpd.GeoDataFrame,
+    census_year: int = 2020,
+    population_data_path: Optional[str] = ".",
+    blocks: Optional[gpd.GeoDataFrame] = None,
+) -> str:
+    """Return the block ids for each row with a Point, indexed to the index of df
+
+    Note this will also work for polygons, but be much slower
+    """
+    if blocks is None:
+        blocks = get_detroit_census_blocks(census_year, population_data_path)
+    return gpd.sjoin(df, blocks, how="left", predicate="within").block_id
 
 
 def kml_to_gpd(fn: str):

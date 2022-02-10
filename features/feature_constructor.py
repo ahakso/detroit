@@ -79,6 +79,7 @@ class Feature:
         data_path: Optional[str] = ".",
         decennial_census_year: Optional[int] = 2020,
         verbose: Optional[bool] = True,
+        **kwargs,
     ) -> None:
         if meta.get("min_geo_grain") not in ("lat/long", "block", "block group", "tract"):
             raise ValueError("min_geo_grain must be one of 'lat/long', 'block', 'block group', 'tract'")

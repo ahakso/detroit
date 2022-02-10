@@ -21,7 +21,7 @@ def get_detroit_census_blocks(decennial_census_year: int, data_path: str = "./")
         df = gpd.read_file(data_path + "detroit_census_blocks_2020/blocks_in_detroit_2020.shp")
     else:
         raise ValueError(f"decennial_census_year must be 2010 or 2020")
-    return df.to_crs("epsg:4327")
+    return df.to_crs("epsg:4326")
 
 
 def get_detroit_boundaries():
