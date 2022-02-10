@@ -4,7 +4,7 @@ from typing import List, Optional, Union
 import geopandas as gpd
 import pandas as pd
 
-from feature_contructor import Feature
+from feature_constructor import Feature
 
 
 class ViolenceCalls(Feature):
