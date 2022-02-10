@@ -4,7 +4,7 @@ from typing import List, Optional, Union
 import geopandas as gpd
 import pandas as pd
 
-from feature_constructor import Feature
+from features.feature_constructor import Feature
 
 
 class ViolenceCalls(Feature):
@@ -52,21 +52,7 @@ class ViolenceCalls(Feature):
 
     def __repr__(self) -> str:
         super_str = super().__repr__()
-        if self.data is None:
-            data = "No data loaded"
-        else:
-            data = f"{self.data.shape[0]} rows"
-
-        if self.clean_data is None:
-            clean_data = "No data cleaned"
-        else:
-            clean_data = f"{self.clean_data.shape[0]} rows after cleaning"
-
-        if self.index is None:
-            index = "No index generated"
-        else:
-            index = f"Indexed to {self.index.name}"
-        return super_str + "\n\n" + "\n\n".join([data, clean_data, index])
+        return "Violence calls feature\n\n" + super_str
 
     def load_data(
         self,
@@ -78,6 +64,8 @@ class ViolenceCalls(Feature):
         This is a big file (~4M rows). Getting 100k rows is enough to play with, but defaults to full load
 
         call_whitelist_strings: determines the whitelist filter on call descriptions. Pass 'close_proxy', 'near_proxy', or a list of custom whitelist strings
+
+        TODO: allow for use of lat/long instead of relying on their block_id from 2010 census
         """
 
         # use a generator function to select rows we want in chunks rather than loading everything into memory at once

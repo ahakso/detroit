@@ -34,7 +34,7 @@ class Feature:
         - construct_feature(), which should reshape the data to output a Series indexed by the geo entity.
     """
 
-    def __init__(self, meta=Dict, data_path: Optional[str] = ".", decennial_census_year: Optional[int] = 2020) -> None:
+    def __init__(self, meta: Dict, data_path: Optional[str] = ".", decennial_census_year: Optional[int] = 2020) -> None:
         if meta.get("min_geo_grain") not in ("lat/long", "block", "block group", "tract"):
             raise ValueError("min_geo_grain must be one of 'lat/long', 'block', 'block group', 'tract'")
         self.meta = meta
@@ -47,7 +47,21 @@ class Feature:
     def __repr__(self) -> str:
         meta = f"Function metadata:\n{pprint.pformat(self.meta)}"
         ref_year = f"Using {self._decennial_census_year} as reference geo"
-        return "\n\n".join([meta, ref_year])
+        if self.data is None:
+            data = "No data loaded"
+        else:
+            data = f"{self.data.shape[0]} rows"
+
+        if self.clean_data is None:
+            clean_data = "No data cleaned"
+        else:
+            clean_data = f"{self.clean_data.shape[0]} rows after cleaning"
+
+        if self.index is None:
+            index = "No index generated"
+        else:
+            index = f"Indexed to {self.index.name}"
+        return "\n\n".join([meta, ref_year, data, clean_data, index])
 
     def open_data_url(self, source: Optional[str] = "box") -> None:
         if source == "box":
