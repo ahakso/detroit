@@ -10,6 +10,30 @@ from detroit_geos import get_detroit_census_blocks
 GEO_GRAIN_STR_LEN_MAP = {"block": 15, "block group": 12, "tract": 11}
 
 
+def cleanse_decorator(func):
+    def standardize_and_validate(self, *args, **kwargs):
+        self.clean_data = func(self)
+        self.standardize_block_id()
+        self.validate_cleansed_data()
+
+    return standardize_and_validate
+
+
+def data_loader(func):
+    def load_data(self, target_geo_grain):
+        # def populate_data(self, *args, **kwargs):
+        if self.data is None:
+            self.load_data()
+        if self.clean_data is None:
+            self.cleanse_data()
+
+        if (self.index is None) or (self.index.name != target_geo_grain):
+            self.index = self.generate_index(target_geo_grain)
+        return func(self, target_geo_grain)
+
+    return load_data
+
+
 class Feature:
     """Parent class from which additional features constructors inherit
 
@@ -20,13 +44,18 @@ class Feature:
 
     Missing geographic entities are not handled here, but we may revisit later.
 
+    Arguments:
+        meta {Dict} -- metadata for the feature, hardcoded into child class
+        data_path -- path to local data files
+        decennial_census_year -- year of reference geo data
+
     Attributes:
         meta: A dictionary of metadata about the feature, including where to get the data, the minimum granularity, and the feature name
         data: An opinionated initial load of the data
         clean_data: data ready for feature construction
         index: The geo index of the feature, which is a pandas Series.
 
-    The following methods must be implemented:
+    The following methods must be implemented in the child classes:
         - load_data(), which should be an opinionated import of the raw data, selecting appropriate columns, performing
           obvious cleaning steps etc
         - cleanse_data(), which should be where experimentation on the roughly cleaned data happens. block_id must be
@@ -93,6 +122,13 @@ class Feature:
         """
         raise NotImplementedError("clean_data() must be implemented")
 
+    # def cleanse_decorator(func):
+    # def standardize_and_validate(self, *args, **kwargs):
+    #     self.clean_data = func(self, *args, **kwargs)
+    #     self.standardize_block_id()
+    #     self.validate_cleansed_data()
+    #     print("decorator ran")
+
     def generate_index(self, target_geo_grain: str) -> pd.Index:
         """Reads in the census blocks in detroit and generates a pandas index for the target_geo_grain"""
         blocks = get_detroit_census_blocks(self._decennial_census_year, data_path=self._data_path)
@@ -143,7 +179,7 @@ class Feature:
             raise ValueError("block_id must be a string")
         if np.any(self.clean_data.block_id.str.len() != len(self.clean_data.block_id.iloc[0])):
             raise ValueError("block_id is of inconsistent length")
-        print("block_id looks good")
+        print("validator: block_id looks good")
 
     def standardize_block_id(self):
         """
