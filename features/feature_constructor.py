@@ -22,8 +22,9 @@ def cleanse_decorator(func):
 
 
 def data_loader(func):
+    """Loads and cleans data + assigns index. Useful for methods that require all three"""
+
     def load_data(self, target_geo_grain):
-        # def populate_data(self, *args, **kwargs):
         if self.data is None:
             if self.verbose:
                 print("Data not yet loaded, loading all data")
@@ -52,24 +53,24 @@ class Feature:
     Features that require multiple data assets are not handled by this class. I suspect they can always be
     combined downstream.
 
-    Missing geographic entities are not handled here, but we may revisit later.
+    Missing geographic entities are included with generate_index
 
     Arguments:
-        meta {Dict} -- metadata for the feature, hardcoded into child class
+        meta -- metadata for the feature, hardcoded into child class
         data_path -- path to local data files
         decennial_census_year -- year of reference geo data
 
     Attributes:
-        meta: A dictionary of metadata about the feature, including where to get the data, the minimum granularity, and the feature name
-        data: An opinionated initial load of the data
-        clean_data: data ready for feature construction
-        index: The geo index of the feature, which is a pandas Series.
+        meta {dict}: A dictionary of metadata about the feature, including where to get the data, the minimum granularity, and the feature name
+        data {pd.Dataframe}: An opinionated initial load of the data
+        clean_data {pd.Dataframe}: data ready for feature construction
+        index {pd.Index}: The geo index of the feature
 
     The following methods must be implemented in the child classes:
         - load_data(), which should be an opinionated import of the raw data, selecting appropriate columns, performing
           obvious cleaning steps etc
         - cleanse_data(), which should be where experimentation on the roughly cleaned data happens. block_id must be
-          assigned_here, and self.standardize_block_id() must be run
+          assigned_here
         - construct_feature(), which should reshape the data to output a Series indexed by the geo entity.
     """
 

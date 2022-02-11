@@ -16,7 +16,7 @@ def point_to_block_id(
     census_year: int = 2020,
     block_data_path: Optional[str] = "./",
     blocks: Optional[gpd.GeoDataFrame] = None,
-) -> gpd.GeoSeries[str]:
+) -> gpd.GeoSeries:
     """Return the block ids for each row with a Point, with index of df
 
     Args:
