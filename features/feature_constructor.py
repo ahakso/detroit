@@ -145,7 +145,7 @@ class Feature:
 
     def generate_index(self, target_geo_grain: str) -> pd.Index:
         """Reads in the census blocks in detroit and generates a pandas index for the target_geo_grain"""
-        blocks = get_detroit_census_blocks(self.decennial_census_year, data_path=self._data_path)
+        blocks = get_detroit_census_blocks(self.decennial_census_year, data_path=self.data_path)
         self.index = pd.Index(
             blocks.block_id.str[: GEO_GRAIN_STR_LEN_MAP[target_geo_grain]].unique(), name=target_geo_grain
         )
