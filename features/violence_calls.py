@@ -1,4 +1,5 @@
 import re
+from logging import warn
 from typing import List, Optional, Union
 
 import geopandas as gpd
@@ -85,7 +86,7 @@ class ViolenceCalls(Feature):
             call_whitelist_strings = self.NEAR_PROXY_CALL_STRINGS + self.CLOSE_PROXY_CALL_STRINGS
         expr = re.compile("|".join(call_whitelist_strings))
         generator = pd.read_csv(
-            self._data_path + self.meta.get("filename"),
+            self.data_path + self.meta.get("filename"),
             nrows=sample_rows,
             usecols=self.COLS_911,
             parse_dates=["call_timestamp"],
@@ -100,9 +101,16 @@ class ViolenceCalls(Feature):
 
         calls = gpd.GeoDataFrame(calls, geometry=gpd.points_from_xy(calls.longitude, calls.latitude), crs="epsg:4326")
         if use_lat_long:
-            calls.assign(block_id=point_to_block_id(calls.loc[:, ["geometry"]], self._decennial_census_year))
+            if self.decennial_census_year == 2010:
+                warn("More accurate to use their block_id for 2010 census context")
+            calls.assign(
+                block_id=point_to_block_id(
+                    calls.loc[:, ["oid", "geometry"]],
+                    self.decennial_census_year,
+                )
+            )
         self.data = calls
-        print(f"Loaded {sample_rows:,} rows of data")
+        print(f"Loaded {self.data.shape[0] if sample_rows is None else sample_rows:,} rows of data")
 
     @cleanse_decorator
     def cleanse_data(self) -> None:

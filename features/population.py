@@ -15,7 +15,7 @@ class Population(Feature):
 
     def __init__(
         self,
-        decennial_census_year: int = 2020,
+        decennial_census_year: Optional[int] = 2020,
         population_data_path: Optional[str] = "",
         **kwargs,
     ) -> None:
@@ -39,12 +39,12 @@ class Population(Feature):
             },
             decennial_census_year=decennial_census_year,
         )
-        self.population_data_path = self._data_path.rstrip("/") + "/" + population_data_path.rstrip("/") + "/"
+        self.population_data_path = self.data_path.rstrip("/") + "/" + population_data_path.rstrip("/") + "/"
 
     def load_data(self):
-        if self._decennial_census_year == 2010:
+        if self.decennial_census_year == 2010:
             cols = {"GEO_ID": "block_id", "P001001": "population"}
-        elif self._decennial_census_year == 2020:
+        elif self.decennial_census_year == 2020:
             cols = {"GEO_ID": "block_id", "P1_001N": "population"}
         self.data = (
             pd.read_csv(

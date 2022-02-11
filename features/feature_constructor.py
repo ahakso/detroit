@@ -83,17 +83,19 @@ class Feature:
     ) -> None:
         if meta.get("min_geo_grain") not in ("lat/long", "block", "block group", "tract"):
             raise ValueError("min_geo_grain must be one of 'lat/long', 'block', 'block group', 'tract'")
+        if decennial_census_year not in (2010, 2020):
+            raise ValueError("decennial_census_year must be one of 2010, 2020")
         self.meta = meta
         self.data = None
         self.clean_data = None
         self.index = None
-        self._data_path = data_path.rstrip("/") + "/"
-        self._decennial_census_year = decennial_census_year
+        self.data_path = data_path.rstrip("/") + "/"
+        self.decennial_census_year = decennial_census_year
         self.verbose = verbose
 
     def __repr__(self) -> str:
         meta = f"Function metadata:\n{pprint.pformat(self.meta)}"
-        ref_year = f"Using {self._decennial_census_year} as reference geo"
+        ref_year = f"Using {self.decennial_census_year} as reference geo"
         if self.data is None:
             data = "No data loaded"
         else:
@@ -142,7 +144,7 @@ class Feature:
 
     def generate_index(self, target_geo_grain: str) -> pd.Index:
         """Reads in the census blocks in detroit and generates a pandas index for the target_geo_grain"""
-        blocks = get_detroit_census_blocks(self._decennial_census_year, data_path=self._data_path)
+        blocks = get_detroit_census_blocks(self.decennial_census_year, data_path=self._data_path)
         self.index = pd.Index(
             blocks.block_id.str[: GEO_GRAIN_STR_LEN_MAP[target_geo_grain]].unique(), name=target_geo_grain
         )

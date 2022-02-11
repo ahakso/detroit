@@ -14,16 +14,24 @@ from detroit_geos import get_detroit_census_blocks
 def point_to_block_id(
     df: gpd.GeoDataFrame,
     census_year: int = 2020,
-    population_data_path: Optional[str] = ".",
+    block_data_path: Optional[str] = "./",
     blocks: Optional[gpd.GeoDataFrame] = None,
-) -> str:
-    """Return the block ids for each row with a Point, indexed to the index of df
+) -> gpd.GeoSeries[str]:
+    """Return the block ids for each row with a Point, with index of df
 
-    Note this will also work for polygons, but be much slower
+    Args:
+        df: DataFrame with a geometry column of type Point
+        census_year: Year of the census data to use
+        block_data_path: Path to the census block data
+        blocks: Optional GeoDataFrame of census blocks to avoid a load
+
+    It's implemented in C, and very fast. About 250ms for 400k points and 16k polygons.
     """
     if blocks is None:
-        blocks = get_detroit_census_blocks(census_year, population_data_path)
-    return gpd.sjoin(df, blocks, how="left", predicate="within").block_id
+        blocks = get_detroit_census_blocks(census_year, block_data_path)
+    df = gpd.sjoin(df, blocks, how="left", predicate="within")
+    # since lat/long is snapped, most of these are on block boundaries. Just pick one
+    return df.drop_duplicates(subset=["oid"], keep="first").block_id
 
 
 def kml_to_gpd(fn: str):
