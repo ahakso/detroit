@@ -68,11 +68,9 @@ class ViolenceCalls(Feature):
     ) -> None:
         """Bring in the granular data as an attribute of the class of type gpd.GeoDataframe: self.data
 
-
-
         Arguments:
             sample_rows -- This is a big file (~4M rows). Getting 100k rows is enough to play with, but defaults to full load
-            use_lat_long -- use coordinates and census tracts rather than assigned ID. If using 2010 census, it's more accurate to use their id
+            use_lat_long -- use coordinates and census tracts rather than assigned ID. If using 2010 census, it's more accurate to use their block_id
             call_whitelist_strings: determines the whitelist filter on call descriptions. Pass 'close_proxy', 'near_proxy', or a list of custom whitelist strings
 
         TODO: allow for use of lat/long instead of relying on their block_id from 2010 census
