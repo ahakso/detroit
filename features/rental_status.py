@@ -1,0 +1,3 @@
+
+class RentalStatus(Feature):
+    
