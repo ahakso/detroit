@@ -16,7 +16,6 @@ class SMART_bus_stops(Feature):
         "stop_lon",
         "ObjectId",
     ]
-    TYPES_bus_stops = [float, float]
 
     def __init__(
         self,
@@ -51,8 +50,6 @@ class SMART_bus_stops(Feature):
         TODO: allow for use of lat/long instead of relying on their block_id from 2010 census
         """
 
-        # use a generator function to select rows we want in chunks rather than loading everything into memory at once
-
         df = pd.read_csv(
             self.data_path + self.meta.get("filename"),
             nrows=sample_rows,
@@ -60,18 +57,18 @@ class SMART_bus_stops(Feature):
         ).rename(columns={"ObjectId":"oid"})
 
         stops = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.stop_lon, df.stop_lat), crs="epsg:4326")
-        stops.assign(
+        stops = stops.assign(
             block_id=point_to_block_id(
                 stops.loc[:, ["oid", "geometry"]],
                 self.decennial_census_year,
             )
-        )
+        ).dropna(subset=["block_id"]).astype({'block_id':str})
         self.data = stops
         print(f"Loaded {self.data.shape[0] if sample_rows is None else sample_rows:,} rows of data")
 
     @cleanse_decorator
     def cleanse_data(self) -> None:
-        self.clean_data = self.data.copy().dropna(subset=["block_id"])
+        self.clean_data = self.data.copy()
         return self.clean_data
 
     @classmethod
