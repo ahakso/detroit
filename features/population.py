@@ -31,7 +31,7 @@ class Population(Feature):
             raise ValueError("Year must be 2010 or 2020")
         super().__init__(
             meta={
-                "feature_name": "population",
+                "supported_features": ("population",),
                 "box_url": box_url,
                 "source_url": source_url,
                 "min_geo_grain": "block",
@@ -63,14 +63,8 @@ class Population(Feature):
         return self.data.copy()
 
     @data_loader
-    def construct_feature(self, target_geo_grain: str) -> pd.Series:
-        population = (
-            self.assign_geo_column(target_geo_grain)
-            .groupby("geo")
-            .population.sum()
-            .rename(self.meta.get("feature_name"))
-            .reindex(self.index)
-        )
+    def construct_feature(self, target_geo_grain: str) -> pd.DataFrame:
+        population = self.assign_geo_column(target_geo_grain).groupby("geo").population.sum().reindex(self.index)
         if self.verbose:
             print(f"{population.isna().sum()} of {population.shape[0]} {target_geo_grain}s are unaccounted for")
-        return population
+        return population.to_frame(name=self.meta.get("supported_features")[0])
