@@ -43,6 +43,7 @@ class ViolenceCalls(Feature):
 
     def __init__(
         self,
+        decennial_census_year: int = 2010,
         **kwargs,
     ) -> None:
         super().__init__(
@@ -53,6 +54,7 @@ class ViolenceCalls(Feature):
                 "min_geo_grain": "lat/long",
                 "filename": "calls_for_service_from_jimmy.csv",
             },
+            decennial_census_year=decennial_census_year,
             **kwargs,
         )
 
