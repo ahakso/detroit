@@ -14,6 +14,7 @@ class SMART_bus_stops(Feature):
     COLS_bus_stops = [
         "stop_lat",
         "stop_lon",
+        "ObjectId",
     ]
     TYPES_bus_stops = [float, float]
 
@@ -39,7 +40,6 @@ class SMART_bus_stops(Feature):
     def load_data(
         self,
         sample_rows: Optional[int] = None,
-        use_lat_long: bool = False,
     ) -> None:
         """Bring in the granular data as an attribute of the class of type gpd.GeoDataframe: self.data
 
@@ -53,24 +53,19 @@ class SMART_bus_stops(Feature):
 
         # use a generator function to select rows we want in chunks rather than loading everything into memory at once
 
-        generator = pd.read_csv(
+        df = pd.read_csv(
             self.data_path + self.meta.get("filename"),
             nrows=sample_rows,
             usecols=self.COLS_bus_stops,
-            chunksize=1e4,
-            dtype=dict(zip(self.COLS_bus_stops, self.TYPES_bus_stops)),
-        )
+        ).rename(columns={"ObjectId":"oid"})
 
-        stops = gpd.GeoDataFrame(generator, geometry=gpd.points_from_xy(generator.stop_lon, generator.stop_lat), crs="epsg:4326")
-        if use_lat_long:
-            if self.decennial_census_year == 2010:
-                warn("More accurate to use their block_id for 2010 census context")
-            stops.assign(
-                block_id=point_to_block_id(
-                    stops.loc[:, ["oid", "geometry"]],
-                    self.decennial_census_year,
-                )
+        stops = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.stop_lon, df.stop_lat), crs="epsg:4326")
+        stops.assign(
+            block_id=point_to_block_id(
+                stops.loc[:, ["oid", "geometry"]],
+                self.decennial_census_year,
             )
+        )
         self.data = stops
         print(f"Loaded {self.data.shape[0] if sample_rows is None else sample_rows:,} rows of data")
 
