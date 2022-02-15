@@ -45,14 +45,13 @@ class OutOfStateRentalOwnership(Feature):
             .assign(
                 owner_state=lambda df: df.owner_state.str.replace(" *MI *|MICHIGAN|MI +(MI)|MICH", "MI", regex=True)
             )
-            .dropna(subset=["block_id"])
             .astype({"block_id": str})
         )
         self.data = df
 
     @cleanse_decorator
     def cleanse_data(self) -> None:
-        self.clean_data = self.data.copy()
+        self.clean_data = self.data.dropna(subset=["block_id"]).copy()
         return self.clean_data
 
     @data_loader

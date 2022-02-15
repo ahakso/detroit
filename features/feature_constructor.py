@@ -206,8 +206,11 @@ class Feature:
         For features of self.meta.min_geo_grain > target_geo_grain passed to self.construct_feature(), full geo_id
         will need to be introduced separately
         """
-        if np.any(self.clean_data.block_id.dropna().str.len() != len(self.clean_data.block_id.dropna().iloc[0])):
-            warn("block_id is of inconsistent length in self.clean_data prior to standardization")
-        if self.clean_data.block_id.isna().sum():
+        if self.clean_data.block_id.isna().sum() or (self.clean_data.block_id == "nan").sum():
             warn("Null block ids exist prior to standardization")
+        no_null_blocks = self.clean_data.loc[lambda x: x.block_id != "nan"].block_id.dropna()
+        if np.any(no_null_blocks.str.len() != len(no_null_blocks.iloc[0])):
+            warn(
+                "block_id is of inconsistent length in self.clean_data prior to standardization. Investigate self.data"
+            )
         self.clean_data.block_id = self.clean_data.block_id.apply(lambda x: x.ljust(15, "0"))
