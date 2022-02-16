@@ -1,6 +1,6 @@
 import re
 from logging import warn
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
 
 import geopandas as gpd
 import pandas as pd
@@ -47,7 +47,7 @@ class ViolenceCalls(Feature):
     ) -> None:
         super().__init__(
             meta={
-                "feature_name": "violence_calls",
+                "supported_features": ("violence_calls",),
                 "box_url": "https://bloombergdotorg.box.com/s/pci8u0mqij9kusq1ce9wq2lzjtznap58",
                 "source_url": "https://data.detroitmi.gov/datasets/911-calls-for-service/explore",
                 "min_geo_grain": "lat/long",
@@ -120,14 +120,15 @@ class ViolenceCalls(Feature):
         return s.fillna(0)
 
     @data_loader
-    def construct_feature(self, target_geo_grain: str) -> pd.Series:
-        """Return a Series of counts of calls by geo entity
+    def construct_feature(self, target_geo_grain: str, features: Tuple[str] = None) -> pd.DataFrame:
+        """Return a Dataframe of counts of calls by geo entity
 
         target_geo_grain should be one of "block", "block group", "tract"
 
         By default, will load and cleanse data if not already done
         """
-        n_violent_calls = (
-            self.assign_geo_column(target_geo_grain).groupby("geo").oid.count().rename(self.meta.get("feature_name"))
-        )
-        return n_violent_calls.reindex(self.index)
+        if features is None:
+            features = self.meta.get("supported_features")
+        if "violence_calls" in features:
+            n_violent_calls = self.assign_geo_column(target_geo_grain).groupby("geo").oid.count()
+            return n_violent_calls.reindex(self.index).to_frame(name="violence_calls")

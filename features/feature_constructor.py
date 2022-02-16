@@ -150,7 +150,7 @@ class Feature:
             blocks.block_id[: GEO_GRAIN_STR_LEN_MAP[target_geo_grain]].unique(), name=target_geo_grain
         )
 
-    def construct_feature(self) -> pd.Series:
+    def construct_feature(self) -> pd.DataFrame:
         """Reshape the data to output a Series indexed by the geo entity.
 
         target_geo_grain must be an argument, and should be one of "block", "block group", "tract"
