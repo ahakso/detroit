@@ -53,7 +53,7 @@ class Population(Feature):
                 skiprows=[1],
             )
             .rename(columns=cols)
-            .assign(block_id=lambda x: x.block_id.str.split("US").apply(lambda s: s[1]))
+            .assign(block_id=lambda x: x.block_id.str.split("US").apply(lambda s: float(s[1])))
         )
         if self.verbose:
             print(f"Loaded {self.data.shape[0]} rows")
