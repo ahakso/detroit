@@ -182,24 +182,32 @@ class Feature:
             raise ValueError("target_geo_grain must be one of 'block', 'block group', 'tract'")
         if self.clean_data.block_id.dtype != "float64":
             raise ValueError("block_id must be of type float64")
-
-        n_chars_to_truncate = GEO_GRAIN_LEN_MAP.get(self.meta.get("min_geo_grain")) - GEO_GRAIN_LEN_MAP.get(
+        # 11 - 12 = -1
+        n_chars_from_target_to_min = GEO_GRAIN_LEN_MAP.get(self.meta.get("min_geo_grain")) - GEO_GRAIN_LEN_MAP.get(
             target_geo_grain
         )
-        is_adequately_granular = n_chars_to_truncate >= 0
+        # 15 - 12 = 3
+        n_chars_from_block_to_target = GEO_GRAIN_LEN_MAP.get("block") - GEO_GRAIN_LEN_MAP.get(target_geo_grain)
 
-        if is_adequately_granular:
-            return self.clean_data.assign(geo=lambda x: x.block_id // (10 ** n_chars_to_truncate))
-        else:
+        n_chars_from_block_to_min = GEO_GRAIN_LEN_MAP.get("block") - GEO_GRAIN_LEN_MAP.get(
+            self.meta.get("min_geo_grain")
+        )
+        is_coarser_than_target = n_chars_from_target_to_min < 0
+        if is_coarser_than_target:
+
+            # Use ground truth census block to assign a row for coarser geo to every granular geo
             blocks = get_detroit_census_blocks(self.decennial_census_year, self.data_path)
             return (
                 blocks.loc[:, ["block_id"]]
-                .assign(join_column=lambda x: x.block_id // 10 ** (n_chars_to_truncate))
-                .rename(columns={"block_id": "geo"})
+                .assign(join_column=lambda x: x.block_id // 10 ** (n_chars_from_block_to_min))
+                .assign(geo=lambda x: x.block_id // 10 ** (n_chars_from_block_to_target))
                 .merge(self.clean_data, left_on="join_column", right_on="block_id")
                 .drop(columns=["join_column"])
+                .drop_duplicates(subset=["geo"])
                 .astype({"geo": float})
             )
+        else:
+            return self.clean_data.assign(geo=lambda x: x.block_id // (10 ** n_chars_from_target_to_min))
 
     def validate_cleansed_data(self):
         """
