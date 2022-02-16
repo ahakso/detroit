@@ -32,21 +32,15 @@ class OutOfStateRentalOwnership(Feature):
     def load_data(
         self,
     ) -> None:
-        raw = pd.read_csv("Rental_Statuses.csv")
+        raw = pd.read_csv(self.meta.get("filename"))
         df = gpd.GeoDataFrame(raw, geometry=gpd.points_from_xy(raw.X, raw.Y), crs="epsg:4326")
-        df = (
-            df.assign(
-                block_id=lambda df: point_to_block_id(
-                    df.loc[:, ["oid", "geometry"]],
-                    self.decennial_census_year,
-                ),
-                owner_state=lambda df: df.owner_state.str.upper(),
-            )
-            .assign(
-                owner_state=lambda df: df.owner_state.str.replace(" *MI *|MICHIGAN|MI +(MI)|MICH", "MI", regex=True)
-            )
-            .astype({"block_id": str})
-        )
+        df = df.assign(
+            block_id=lambda df: point_to_block_id(
+                df.loc[:, ["oid", "geometry"]],
+                self.decennial_census_year,
+            ),
+            owner_state=lambda df: df.owner_state.str.upper(),
+        ).assign(owner_state=lambda df: df.owner_state.str.replace(" *MI *|MICHIGAN|MI +(MI)|MICH", "MI", regex=True))
         self.data = df
 
     @cleanse_decorator
