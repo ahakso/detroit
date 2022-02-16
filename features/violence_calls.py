@@ -39,7 +39,7 @@ class ViolenceCalls(Feature):
         "longitude",
         "latitude",
     ]
-    TYPES_911 = [str, str, str, str, str, str, int, float, float]
+    TYPES_911 = [str, str, float, str, str, str, int, float, float]
 
     def __init__(
         self,
