@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from detroit_geos import get_detroit_census_blocks
 
-GEO_GRAIN_LEN_MAP = {"block": 15, "block group": 12, "tract": 11}
+GEO_GRAIN_LEN_MAP = {"block": 15, "lat/long": 15, "block group": 12, "tract": 11}
 
 
 def cleanse_decorator(func):
@@ -218,7 +218,7 @@ class Feature:
     def standardize_block_id(self):
         """
         Standardizes block_id to all be of length corresponding with self.meta.min_geo_grain by right padding with zeros.
-         Should be run in load_data (automatic with @data_loader)
+        Should be run in load_data (automatic with @data_loader)
         This may be a no-op
 
         For features of self.meta.min_geo_grain > target_geo_grain passed to self.construct_feature(), full geo_id
