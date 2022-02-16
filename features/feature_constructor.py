@@ -1,13 +1,13 @@
 import pprint
 import webbrowser
 from logging import warn
-from typing import Dict, Optional
+from typing import Callable, Dict, Optional
 
 import numpy as np
 import pandas as pd
 from detroit_geos import get_detroit_census_blocks
 
-GEO_GRAIN_STR_LEN_MAP = {"block": 15, "block group": 12, "tract": 11}
+GEO_GRAIN_LEN_MAP = {"block": 15, "block group": 12, "tract": 11}
 
 
 def cleanse_decorator(func):
@@ -146,9 +146,7 @@ class Feature:
     def generate_index(self, target_geo_grain: str) -> pd.Index:
         """Reads in the census blocks in detroit and generates a pandas index for the target_geo_grain"""
         blocks = get_detroit_census_blocks(self.decennial_census_year, data_path=self.data_path)
-        self.index = pd.Index(
-            blocks.block_id[: GEO_GRAIN_STR_LEN_MAP[target_geo_grain]].unique(), name=target_geo_grain
-        )
+        self.index = pd.Index(blocks.block_id[: GEO_GRAIN_LEN_MAP[target_geo_grain]].unique(), name=target_geo_grain)
 
     def construct_feature(self) -> pd.DataFrame:
         """Reshape the data to output a Series indexed by the geo entity.
@@ -181,9 +179,33 @@ class Feature:
 
         if target_geo_grain not in ("block", "block group", "tract"):
             raise ValueError("target_geo_grain must be one of 'block', 'block group', 'tract'")
-        GEO_ENTITY_INDEX_MAP = {"block": 15, "block group": 12, "tract": 11}
 
-        return self.clean_data.assign(geo=lambda x: x.block_id.str[: GEO_ENTITY_INDEX_MAP[target_geo_grain]])
+        n_chars_to_truncate = GEO_GRAIN_LEN_MAP.get(self.meta.get("min_geo_grain")) - GEO_GRAIN_LEN_MAP.get(
+            target_geo_grain
+        )
+        is_adequately_granular = n_chars_to_truncate >= 0
+
+        if self.clean_data.per_capita_income.dtype == "float64":
+            if is_adequately_granular:
+                return self.clean_data.assign(geo=lambda x: x.block_id // (10 ** n_chars_to_truncate))
+            else:
+                n_chars_to_truncate = GEO_GRAIN_LEN_MAP.get("block") - GEO_GRAIN_LEN_MAP.get(
+                    self.meta.get("min_geo_grain")
+                )
+                blocks = get_detroit_census_blocks(self.decennial_census_year, self.data_path)
+                return (
+                    blocks.loc[:, ["block_id"]]
+                    .assign(join_column=lambda x: x.block_id // 10 ** (n_chars_to_truncate))
+                    .rename(columns={"block_id": "geo"})
+                    .merge(self.clean_data, left_on="join_column", right_on="block_id")
+                    .drop(columns=["join_column"])
+                    .astype({"geo": float})
+                )
+        elif self.clean_data.per_capita_income.dtype == "object":
+            if is_adequately_granular:
+                return self.clean_data.assign(geo=lambda x: x.block_id.str[: GEO_GRAIN_LEN_MAP[target_geo_grain]])
+            else:
+                raise NotImplementedError("Ability to go to more granular than available not implemented")
 
     def validate_cleansed_data(self):
         """
@@ -191,26 +213,39 @@ class Feature:
         """
         if "block_id" not in self.clean_data.columns:
             raise ValueError("block_id must be in dataframe")
-        if not isinstance(self.clean_data.block_id.iloc[0], str):
-            raise ValueError("block_id must be a string")
-        if np.any(self.clean_data.block_id.str.len() != len(self.clean_data.block_id.iloc[0])):
+        if self.clean_data.block_id.dtype not in ("object", "float64"):
+            raise ValueError("block_id must be a string or float")
+        if self.clean_data.block_id.dtype == "object":
+            block_id_len = self.clean_data.block_id.str.len()
+        else:
+            block_id_len = self.clean_data.block_id.transform(lambda x: np.floor(np.log10(x)) + 1)
+        if np.any(block_id_len != block_id_len.iloc[0]):
             raise ValueError("block_id is of inconsistent length")
         if self.verbose:
             print("cleansed data validator: block_id looks good")
 
     def standardize_block_id(self):
         """
-        Standardizes block_id to all be of length 15 by right padding with zeros. Should be run in load_data
-        This may be a no-op for features of self.meta.min_geo_grain == 'block'
+        Standardizes block_id to all be of length corresponding with self.meta.min_geo_grain by right padding with zeros.
+         Should be run in load_data (automatic with @data_loader)
+        This may be a no-op
 
         For features of self.meta.min_geo_grain > target_geo_grain passed to self.construct_feature(), full geo_id
-        will need to be introduced separately
+        will need to be introduced
         """
-        if self.clean_data.block_id.isna().sum() or (self.clean_data.block_id == "nan").sum():
-            warn("Null block ids exist prior to standardization")
-        no_null_blocks = self.clean_data.loc[lambda x: x.block_id != "nan"].block_id.dropna()
-        if np.any(no_null_blocks.str.len() != len(no_null_blocks.iloc[0])):
-            warn(
-                "block_id is of inconsistent length in self.clean_data prior to standardization. Investigate self.data"
+        target_len = GEO_GRAIN_LEN_MAP.get(self.meta.get("min_geo_grain"))
+        if self.clean_data.block_id.dtype == "object":
+            if (self.clean_data.block_id == "nan").sum():
+                warn("Null block ids exist prior to standardization")
+            no_null_blocks = self.clean_data.loc[lambda x: x.block_id != "nan"].block_id
+            if np.any(no_null_blocks.str.len() != len(no_null_blocks.iloc[0])):
+                warn(
+                    "block_id is of inconsistent length in self.clean_data prior to standardization. Investigate self.data"
+                )
+            self.clean_data.block_id = self.clean_data.block_id.apply(lambda x: x.ljust(target_len, "0"))
+        else:
+            if self.clean_data.block_id.isna().sum():
+                warn("Null block ids exist prior to standardization")
+            self.clean_data.block_id = self.clean_data.block_id.apply(
+                lambda x: x * 10 ** (target_len - (np.floor(np.log10(x)) + 1))
             )
-        self.clean_data.block_id = self.clean_data.block_id.apply(lambda x: x.ljust(15, "0"))
