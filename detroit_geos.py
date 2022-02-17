@@ -1,9 +1,15 @@
+from typing import Optional
+
 import geopandas as gpd
 
+from features.feature_constructor import GEO_GRAIN_LEN_MAP
 
-def get_detroit_census_blocks(decennial_census_year: int, data_path: str = "./") -> gpd.GeoDataFrame:
+
+def get_detroit_census_geos(
+    decennial_census_year: int, data_path: str = "./", target_geo_grain: Optional[str] = "block"
+) -> gpd.GeoDataFrame:
     """
-    Returns a geometries of the census blocks in Detroit for the given decennial census year.
+    Returns a geometries of the census polygons in Detroit for the given decennial census year.
 
     2010 census blocks are available from the following URL: https://www.census.gov/cgi-bin/geo/shapefiles/index.php?year=2010&layergroup=Blocks
     2020 census blocks are available from the following URL: https://www2.census.gov/geo/tiger/TIGER2020/TABBLOCK20/
@@ -13,7 +19,10 @@ def get_detroit_census_blocks(decennial_census_year: int, data_path: str = "./")
     which was sourced from the following URL: https://koordinates.com/search/?q=detroit+city+boundary
     For generation of this file, see the section 'Census blocks in city boundaries' in the notebook census_blocks.ipynb in this repo.
 
-    :param decennial_census_year: The decennial census year to get the census blocks for.
+    Args:
+        decennial_census_year -- The decennial census year to get the census blocks for.
+        target_geo_grain -- The target geo grain to return. If None, return blocks
+
     """
     if decennial_census_year == 2010:
         df = gpd.read_file(data_path + "detroit_census_blocks_2010/blocks_in_detroit.shp")
@@ -21,7 +30,17 @@ def get_detroit_census_blocks(decennial_census_year: int, data_path: str = "./")
         df = gpd.read_file(data_path + "detroit_census_blocks_2020/blocks_in_detroit_2020.shp")
     else:
         raise ValueError(f"decennial_census_year must be 2010 or 2020")
-    return df.to_crs("epsg:4326").astype({"block_id": float})
+    df = df.to_crs("epsg:4326").astype({"block_id": float})
+    if target_geo_grain != "block":
+        return (
+            df.assign(
+                geo_id=lambda x: x.block_id // 10 ** (GEO_GRAIN_LEN_MAP["block"] - GEO_GRAIN_LEN_MAP[target_geo_grain])
+            )
+            .dissolve(by="geo_id")
+            .drop(columns=["block_id"])
+        )
+    else:
+        return df.rename(columns={"block_id": "geo_id"})
 
 
 def get_detroit_boundaries():
