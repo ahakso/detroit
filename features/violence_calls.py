@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple, Union
 
 import geopandas as gpd
 import pandas as pd
-from util_detroit import point_to_block_id
+from util_detroit import point_to_geo_id
 
 from features.feature_constructor import Feature, cleanse_decorator, data_loader
 
@@ -74,8 +74,6 @@ class ViolenceCalls(Feature):
             sample_rows -- This is a big file (~4M rows). Getting 100k rows is enough to play with, but defaults to full load
             use_lat_long -- use coordinates and census tracts rather than assigned ID. If using 2010 census, it's more accurate to use their block_id
             call_whitelist_strings: determines the whitelist filter on call descriptions. Pass 'close_proxy', 'near_proxy', or a list of custom whitelist strings
-
-        TODO: allow for use of lat/long instead of relying on their block_id from 2010 census
         """
 
         # use a generator function to select rows we want in chunks rather than loading everything into memory at once
@@ -99,12 +97,14 @@ class ViolenceCalls(Feature):
             ignore_index=True,
         )
 
-        calls = gpd.GeoDataFrame(calls, geometry=gpd.points_from_xy(calls.longitude, calls.latitude), crs="epsg:4326")
+        calls = gpd.GeoDataFrame(
+            calls, geometry=gpd.points_from_xy(calls.longitude, calls.latitude), crs="epsg:4326"
+        ).rename(columns={"block_id": "geo_id"})
         if use_lat_long:
             if self.decennial_census_year == 2010:
                 warn("More accurate to use their block_id for 2010 census context")
             calls.assign(
-                block_id=point_to_block_id(
+                geo_id=point_to_geo_id(
                     calls.loc[:, ["oid", "geometry"]],
                     self.decennial_census_year,
                 )
@@ -114,7 +114,7 @@ class ViolenceCalls(Feature):
 
     @cleanse_decorator
     def cleanse_data(self) -> None:
-        self.clean_data = self.data.copy().dropna(subset=["block_id"])
+        self.clean_data = self.data.copy().dropna(subset=["geo_id"])
         return self.clean_data
 
     @classmethod

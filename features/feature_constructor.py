@@ -5,9 +5,8 @@ from typing import Callable, Dict, Optional
 
 import numpy as np
 import pandas as pd
-from detroit_geos import get_detroit_census_blocks
-
-GEO_GRAIN_LEN_MAP = {"block": 15, "lat/long": 15, "block group": 12, "tract": 11}
+from constants import GEO_GRAIN_LEN_MAP
+from detroit_geos import get_detroit_census_geos
 
 
 def cleanse_decorator(func):
@@ -15,7 +14,7 @@ def cleanse_decorator(func):
         self.clean_data = func(self)
         if self.verbose:
             print(f"clean data has {self.clean_data.shape[0]} rows")
-        self.standardize_block_id()
+        self.standardize_geo_id()
         self.validate_cleansed_data()
 
     return standardize_and_validate
@@ -69,7 +68,7 @@ class Feature:
     The following methods must be implemented in the child classes:
         - load_data(), which should be an opinionated import of the raw data, selecting appropriate columns, performing
           obvious cleaning steps etc
-        - cleanse_data(), which should be where experimentation on the roughly cleaned data happens. block_id must be
+        - cleanse_data(), which should be where experimentation on the roughly cleaned data happens. geo_id must be
           assigned_here
         - construct_feature(), which should reshape the data to output a Series indexed by the geo entity.
     """
@@ -137,17 +136,22 @@ class Feature:
 
         Requires self.data to be populated, and assigns the result to self.clean_data
 
-        self.clean_data must be a dataframe, and must contain the column block_id, of type float,
-        and the floor(log10(block_id))+1 == GEO_GRAIN_LEN_MAP[self.meta.get("min_geo_grain")]
+        self.clean_data must be a dataframe, and must contain the column geo_id, of type float,
+        and the floor(log10(geo_id))+1 == GEO_GRAIN_LEN_MAP[self.meta.get("min_geo_grain")]
 
-        Run self.standardize_block_id() to standardize block_id to consistent length and self.validate_cleansed_data() before exiting the method
+        Run self.standardize_geo_id() to standardize geo_id to consistent length and self.validate_cleansed_data() before exiting the method
         """
         raise NotImplementedError("clean_data() must be implemented")
 
     def generate_index(self, target_geo_grain: str) -> pd.Index:
         """Reads in the census blocks in detroit and generates a pandas index for the target_geo_grain"""
-        blocks = get_detroit_census_blocks(self.decennial_census_year, data_path=self.data_path)
-        self.index = pd.Index(blocks.block_id[: GEO_GRAIN_LEN_MAP[target_geo_grain]].unique(), name=target_geo_grain)
+        geos = get_detroit_census_geos(
+            self.decennial_census_year, data_path=self.data_path, target_geo_grain=target_geo_grain
+        )
+        self.index = pd.Index(
+            geos.geo_id.unique(),
+            name=target_geo_grain,
+        )
 
     def construct_feature(self) -> pd.DataFrame:
         """Reshape the data to output a Series indexed by the geo entity.
@@ -180,8 +184,8 @@ class Feature:
 
         if target_geo_grain not in ("block", "block group", "tract"):
             raise ValueError("target_geo_grain must be one of 'block', 'block group', 'tract'")
-        if self.clean_data.block_id.dtype != "float64":
-            raise ValueError("block_id must be of type float64")
+        if self.clean_data.geo_id.dtype != "float64":
+            raise ValueError("geo_id must be of type float64")
         n_chars_from_target_to_min = GEO_GRAIN_LEN_MAP.get(self.meta.get("min_geo_grain")) - GEO_GRAIN_LEN_MAP.get(
             target_geo_grain
         )
@@ -192,37 +196,37 @@ class Feature:
         is_coarser_than_target = n_chars_from_target_to_min < 0
         if is_coarser_than_target:
             # Use ground truth census block assign a column for both target_geo_grain (geo) and min_geo_grain (join_column)
-            blocks = get_detroit_census_blocks(self.decennial_census_year, self.data_path)
+            blocks = get_detroit_census_geos(self.decennial_census_year, self.data_path)
             return (
-                blocks.loc[:, ["block_id"]]
-                .assign(join_column=lambda x: x.block_id // 10 ** (n_chars_from_block_to_min))
-                .assign(geo=lambda x: x.block_id // 10 ** (n_chars_from_block_to_target))
-                .drop(columns=["block_id"])
-                .merge(self.clean_data, left_on="join_column", right_on="block_id")
+                blocks.loc[:, ["geo_id"]]
+                .assign(join_column=lambda x: x.geo_id // 10 ** (n_chars_from_block_to_min))
+                .assign(geo=lambda x: x.geo_id // 10 ** (n_chars_from_block_to_target))
+                .drop(columns=["geo_id"])
+                .merge(self.clean_data, left_on="join_column", right_on="geo_id")
                 .drop(columns=["join_column"])
                 .drop_duplicates(subset=["geo"])
                 .astype({"geo": float})
             )
         else:
-            return self.clean_data.assign(geo=lambda x: x.block_id // (10 ** n_chars_from_target_to_min))
+            return self.clean_data.assign(geo=lambda x: x.geo_id // (10 ** n_chars_from_target_to_min))
 
     def validate_cleansed_data(self):
         """
         Ensures loaded data has columns and datatypes required downstream
         """
-        if "block_id" not in self.clean_data.columns:
-            raise ValueError("block_id must be in dataframe")
-        if self.clean_data.block_id.dtype != "float64":
-            raise ValueError("block_id must be a float")
-        block_id_len = self.clean_data.block_id.transform(lambda x: np.floor(np.log10(x)) + 1)
-        if np.any(block_id_len != block_id_len.iloc[0]):
-            raise ValueError("block_id is of inconsistent length")
+        if "geo_id" not in self.clean_data.columns:
+            raise ValueError("geo_id must be in dataframe")
+        if self.clean_data.geo_id.dtype != "float64":
+            raise ValueError("geo_id must be a float")
+        geo_id_len = self.clean_data.geo_id.transform(lambda x: np.floor(np.log10(x)) + 1)
+        if np.any(geo_id_len != geo_id_len.iloc[0]):
+            raise ValueError("geo_id is of inconsistent length")
         if self.verbose:
-            print("cleansed data validator: block_id looks good")
+            print("cleansed data validator: geo_id looks good")
 
-    def standardize_block_id(self):
+    def standardize_geo_id(self):
         """
-        Standardizes block_id to all be of length corresponding with self.meta.min_geo_grain by right padding with zeros.
+        Standardizes geo_id to all be of length corresponding with self.meta.min_geo_grain by right padding with zeros.
         Should be run in load_data (automatic with @data_loader)
         This may be a no-op
 
@@ -230,8 +234,21 @@ class Feature:
         will need to be introduced
         """
         target_len = GEO_GRAIN_LEN_MAP.get(self.meta.get("min_geo_grain"))
-        if self.clean_data.block_id.isna().sum():
-            warn("Null block ids exist prior to standardization")
-        self.clean_data.block_id = self.clean_data.block_id.apply(
+        if self.clean_data.geo_id.isna().sum():
+            warn("Null geo ids exist prior to standardization")
+        self.clean_data.geo_id = self.clean_data.geo_id.apply(
             lambda x: x * 10 ** (target_len - (np.floor(np.log10(x)) + 1))
         )
+
+    def remove_geos_outside_detroit(self, df, target_geo_grain: Optional[str] = None):
+        """
+        Removes geos outside of detroit. Useful in the load_data() method when data contains geos we don't want
+
+        Could easily be extended to use polygons to do this with geopandas.
+        """
+        if target_geo_grain is None:
+            target_geo_grain = self.meta.get("min_geo_grain")
+        geos_in_detroit = get_detroit_census_geos(
+            self.decennial_census_year, self.data_path, target_geo_grain, return_polygons=False
+        ).loc[:, ["geo_id"]]
+        return pd.merge(df, geos_in_detroit, on="geo_id", how="inner")

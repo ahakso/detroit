@@ -2,7 +2,7 @@ from typing import Optional
 
 import geopandas as gpd
 import pandas as pd
-from util_detroit import point_to_block_id
+from util_detroit import point_to_geo_id
 
 from features.feature_constructor import Feature, cleanse_decorator, data_loader
 
@@ -35,7 +35,7 @@ class OutOfStateRentalOwnership(Feature):
         raw = pd.read_csv(self.meta.get("filename"))
         df = gpd.GeoDataFrame(raw, geometry=gpd.points_from_xy(raw.X, raw.Y), crs="epsg:4326")
         df = df.assign(
-            block_id=lambda df: point_to_block_id(
+            geo_id=lambda df: point_to_geo_id(
                 df.loc[:, ["oid", "geometry"]],
                 self.decennial_census_year,
             ),
@@ -45,7 +45,7 @@ class OutOfStateRentalOwnership(Feature):
 
     @cleanse_decorator
     def cleanse_data(self) -> None:
-        self.clean_data = self.data.dropna(subset=["block_id"]).copy()
+        self.clean_data = self.data.dropna(subset=["geo_id"]).copy()
         return self.clean_data
 
     @data_loader

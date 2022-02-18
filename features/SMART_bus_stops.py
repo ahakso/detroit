@@ -4,13 +4,13 @@ from typing import List, Optional, Union
 
 import geopandas as gpd
 import pandas as pd
-from util_detroit import point_to_block_id
+from util_detroit import point_to_geo_id
 
 from features.feature_constructor import Feature, cleanse_decorator, data_loader
 
 
 class SMART_bus_stops(Feature):
-   # Only read in the columns we want
+    # Only read in the columns we want
     COLS_bus_stops = [
         "stop_lat",
         "stop_lon",
@@ -61,12 +61,14 @@ class SMART_bus_stops(Feature):
             dtype=dict(zip(self.COLS_bus_stops, self.TYPES_bus_stops)),
         )
 
-        stops = gpd.GeoDataFrame(generator, geometry=gpd.points_from_xy(generator.stop_lon, generator.stop_lat), crs="epsg:4326")
+        stops = gpd.GeoDataFrame(
+            generator, geometry=gpd.points_from_xy(generator.stop_lon, generator.stop_lat), crs="epsg:4326"
+        )
         if use_lat_long:
             if self.decennial_census_year == 2010:
                 warn("More accurate to use their block_id for 2010 census context")
             stops.assign(
-                block_id=point_to_block_id(
+                block_id=point_to_geo_id(
                     stops.loc[:, ["oid", "geometry"]],
                     self.decennial_census_year,
                 )

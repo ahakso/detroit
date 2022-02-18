@@ -2,11 +2,14 @@ from typing import Optional
 
 import geopandas as gpd
 
-from features.feature_constructor import GEO_GRAIN_LEN_MAP
+from constants import GEO_GRAIN_LEN_MAP
 
 
 def get_detroit_census_geos(
-    decennial_census_year: int, data_path: str = "./", target_geo_grain: Optional[str] = "block"
+    decennial_census_year: int,
+    data_path: str = "./",
+    target_geo_grain: Optional[str] = "block",
+    return_polygons: Optional[bool] = True,
 ) -> gpd.GeoDataFrame:
     """
     Returns a geometries of the census polygons in Detroit for the given decennial census year.
@@ -32,15 +35,20 @@ def get_detroit_census_geos(
         raise ValueError(f"decennial_census_year must be 2010 or 2020")
     df = df.to_crs("epsg:4326").astype({"block_id": float})
     if target_geo_grain != "block":
-        return (
-            df.assign(
-                geo_id=lambda x: x.block_id // 10 ** (GEO_GRAIN_LEN_MAP["block"] - GEO_GRAIN_LEN_MAP[target_geo_grain])
-            )
-            .dissolve(by="geo_id")
-            .drop(columns=["block_id"])
+        column_aggs = {"longitude": "mean", "latitude": "mean"} if decennial_census_year == 2010 else "mean"
+        df = df.assign(
+            geo_id=lambda x: x.block_id // 10 ** (GEO_GRAIN_LEN_MAP["block"] - GEO_GRAIN_LEN_MAP[target_geo_grain])
         )
+        if return_polygons:
+            return df.dissolve(by="geo_id", aggfunc=column_aggs).reset_index()
+        else:
+            return df.drop(columns=["geometry"]).groupby("geo_id").agg(column_aggs).reset_index()
     else:
-        return df.rename(columns={"block_id": "geo_id"})
+        df = df.rename(columns={"block_id": "geo_id"})
+        if return_polygons:
+            return df
+        else:
+            return df.drop(columns=["geometry"])
 
 
 def get_detroit_boundaries():

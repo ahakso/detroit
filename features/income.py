@@ -32,7 +32,7 @@ class Income(Feature):
         self,
     ) -> None:
         INCOME_COLS = {
-            "GEO_ID": "block_id",
+            "GEO_ID": "geo_id",
             "S1902_C01_019E": "per_capita_income",
             "S1902_C03_001E": "per_household_income",
         }
@@ -42,17 +42,17 @@ class Income(Feature):
             raw.rename(columns=INCOME_COLS)
             .astype({"per_capita_income": float})
             .assign(
-                block_id=lambda x: x.block_id.apply(lambda y: y.split("US")[1]),
+                geo_id=lambda x: x.geo_id.apply(lambda y: y.split("US")[1]),
                 per_household_income=lambda x: x.per_household_income.str.replace("-|N", "nan", regex=True),
                 per_capita_income=lambda x: x.per_capita_income.replace(0, np.nan),
             )
-            .astype({"per_household_income": float, "block_id": float})
+            .astype({"per_household_income": float, "geo_id": float})
         )
         self.data = df
 
     @cleanse_decorator
     def cleanse_data(self) -> None:
-        self.clean_data = self.data.dropna(subset=["block_id"]).copy()
+        self.clean_data = self.data.dropna(subset=["geo_id"]).copy()
         return self.clean_data
 
     @data_loader

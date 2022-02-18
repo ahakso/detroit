@@ -5,19 +5,18 @@ import geopandas as gpd
 import kml2geojson
 import numpy as np
 import pandas as pd
-from pandas.core.series import Series
 from scipy.spatial import KDTree
 
-from detroit_geos import get_detroit_census_blocks
+from detroit_geos import get_detroit_census_geos
 
 
-def point_to_block_id(
+def point_to_geo_id(
     df: gpd.GeoDataFrame,
     census_year: int = 2020,
     block_data_path: Optional[str] = "./",
     blocks: Optional[gpd.GeoDataFrame] = None,
 ) -> gpd.GeoSeries:
-    """Return the block ids for each row with a Point, with index of df
+    """Return the geo ids for each row with a Point, with index of df
 
     A unique identifier column "oid" for df is required to drop duplicates. If you don't have one, just assign one using .assign(oid=range(df.shape[0]))
 
@@ -30,10 +29,10 @@ def point_to_block_id(
     It's implemented in C, and very fast. About 250ms for 400k points and 16k polygons.
     """
     if blocks is None:
-        blocks = get_detroit_census_blocks(census_year, block_data_path)
+        blocks = get_detroit_census_geos(census_year, block_data_path)
     df = gpd.sjoin(df, blocks, how="left", predicate="within")
     # since lat/long is snapped, most of these are on block boundaries. Just pick one
-    return df.drop_duplicates(subset=["oid"], keep="first").block_id
+    return df.drop_duplicates(subset=["oid"], keep="first").geo_id
 
 
 def kml_to_gpd(fn: str):
