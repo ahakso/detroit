@@ -1,7 +1,7 @@
 import pprint
 import webbrowser
 from logging import warn
-from typing import Callable, Dict, Optional
+from typing import Dict, Optional
 
 import numpy as np
 import pandas as pd
@@ -146,7 +146,10 @@ class Feature:
     def generate_index(self, target_geo_grain: str) -> pd.Index:
         """Reads in the census blocks in detroit and generates a pandas index for the target_geo_grain"""
         geos = get_detroit_census_geos(
-            self.decennial_census_year, data_path=self.data_path, target_geo_grain=target_geo_grain
+            self.decennial_census_year,
+            data_path=self.data_path,
+            target_geo_grain=target_geo_grain,
+            return_polygons=False,
         )
         self.index = pd.Index(
             geos.geo_id.unique(),
