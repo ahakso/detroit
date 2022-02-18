@@ -57,4 +57,4 @@ class Income(Feature):
 
     @data_loader
     def construct_feature(self, target_geo_grain: str = "block") -> pd.DataFrame:
-        return self.assign_geo_column(target_geo_grain)
+        return self.assign_geo_column(target_geo_grain).set_index("geo")
