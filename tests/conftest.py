@@ -9,51 +9,9 @@ BLOCKS_PER_YEAR_GEO = {
 
 @pytest.fixture()
 def partial_geo_data():
-    return {
-        "block": pd.DataFrame(
-            [
-                (107, 2.61635424e14),
-                (33, 2.61635137e14),
-                (11, 2.61635192e14),
-                (12, 2.61635119e14),
-                (2, 2.61635228e14),
-                (23, 2.61635065e14),
-                (0, 2.61635395e14),
-                (14, 2.61635142e14),
-                (0, 2.61635347e14),
-                (0, 2.61635219e14),
-                (12, 2.61635081e14),
-            ],
-            columns=["population", "geo_id"],
-        ),
-        "tract": pd.DataFrame(
-            [
-                (2.61635211e10, 1544),
-                (2.61635317e10, 1645),
-                (2.61635061e10, 1875),
-                (2.61635520e10, 1379),
-                (2.61635091e10, 4563),
-                (2.61635390e10, 2769),
-                (2.61639818e10, 0),
-                (2.61635246e10, 1401),
-                (2.61635063e10, 1860),
-                (2.61635132e10, 1504),
-            ],
-            columns=["geo_id", "population"],
-        ),
-        "block group": pd.DataFrame(
-            [
-                (2.61635247e11, 1566),
-                (2.61635068e11, 1860),
-                (2.61635033e11, 1600),
-                (2.61635410e11, 1081),
-                (2.61635259e11, 1049),
-                (2.61635353e11, 1276),
-                (2.61635219e11, 144),
-                (2.61635351e11, 704),
-                (2.61635215e11, 871),
-                (2.61635241e11, 1287),
-            ],
-            columns=["geo_id", "population"],
-        ),
-    }
+    """Reads 5 row dataframes in each grain and year, using a sample of population data"""
+    d = {grain: {} for grain in ["block", "block group", "tract"]}
+    for grain in ("block", "block group", "tract"):
+        for year in (2010, 2020):
+            d[grain][year] = pd.read_csv(f"./tests/test_data/{grain}_{year}.csv")
+    return d
