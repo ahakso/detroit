@@ -26,7 +26,7 @@ class Population(Feature):
         elif decennial_census_year == 2010:
             source_url = "https://data.census.gov/cedsci/table?q=Population%20Total&t=Counts,%20Estimates,%20and%20Projections&g=0500000US26163%241000000&tid=DECENNIALPL2010.P1"
             box_url = "https://bloombergdotorg.box.com/s/zvsd9depnwj6nctmahhjo7baiekt86vn"
-            fn = "DECENNIALPL2020.P1_data_with_overlays_2022-02-06T092022.csv"
+            fn = "DECENNIALPL2010.P1_data_with_overlays_2022-02-06T092022.csv"
         else:
             raise ValueError("Year must be 2010 or 2020")
         super().__init__(
