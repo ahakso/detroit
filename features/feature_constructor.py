@@ -1,7 +1,7 @@
 import pprint
 import webbrowser
 from logging import warn
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -23,7 +23,7 @@ def cleanse_decorator(func):
 def data_loader(func):
     """Loads and cleans data + assigns index. Useful for methods that require all three"""
 
-    def load_data(self, target_geo_grain):
+    def load_data(self, target_geo_grain: str, features: Tuple[str] = None) -> pd.DataFrame:
         if self.data is None:
             if self.verbose:
                 print("Data not yet loaded, loading all data")
@@ -38,8 +38,8 @@ def data_loader(func):
                 print(
                     f"Generate index not run, or was run on the wrong grain. Creating index on {target_geo_grain} grain"
                 )
-            self.index = self.generate_index(target_geo_grain)
-        return func(self, target_geo_grain)
+            self.generate_index(target_geo_grain)
+        return func(self, target_geo_grain, features)
 
     return load_data
 
