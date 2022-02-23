@@ -53,9 +53,15 @@ class Population(Feature):
                 skiprows=[1],
             )
             .rename(columns=cols)
-            .assign(geo_id=lambda x: x.block_id.str.split("US").apply(lambda s: float(s[1])))
+            .assign(
+                geo_id=lambda x: x.block_id.str.split("US").apply(lambda s: float(s[1])),
+            )
         )
+
         self.data = self.remove_geos_outside_detroit(self.data)
+        if self.data.population.dtype == "object":
+            self.data = self.data.assign(population=lambda x: x.population.apply(lambda x: x.split("(")[0]))
+        self.data = self.data.astype({"population": int})
         if self.verbose:
             print(f"Loaded {self.data.shape[0]} rows")
 
