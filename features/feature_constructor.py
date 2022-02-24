@@ -1,7 +1,9 @@
+import os
+import pickle
 import pprint
 import webbrowser
 from logging import warn
-from typing import Dict, Optional, Tuple
+from typing import BinaryIO, Dict, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -79,6 +81,7 @@ class Feature:
         data_path: Optional[str] = ".",
         decennial_census_year: Optional[int] = 2020,
         verbose: Optional[bool] = True,
+        feature_cache_path: Optional[str] = None,
         **kwargs,
     ) -> None:
         if meta.get("min_geo_grain") not in ("lat/long", "block", "block group", "tract"):
@@ -92,6 +95,10 @@ class Feature:
         self.data_path = data_path.rstrip("/") + "/"
         self.decennial_census_year = decennial_census_year
         self.verbose = verbose
+        if feature_cache_path is None:
+            self.feature_cache_path = "cache"
+        else:
+            self.feature_cache_path = feature_cache_path.rstrip("/") + "/"
 
     def __repr__(self) -> str:
         meta = f"Function metadata:\n{pprint.pformat(self.meta)}"
@@ -255,3 +262,20 @@ class Feature:
             self.decennial_census_year, self.data_path, target_geo_grain, return_polygons=False
         ).loc[:, ["geo_id"]]
         return pd.merge(df, geos_in_detroit, on="geo_id", how="inner")
+
+    def cache_features(self) -> BinaryIO:
+        """Creates a pickle file with a dict of the features at each grain"""
+        features = {}
+        for grain in ("block", "block group", "tract"):
+            features[grain] = self.construct_feature(grain)
+        fn = f"{self.feature_cache_path}/{type(self).__name__}_{self.decennial_census_year}.pkl"
+        os.makedirs(os.path.dirname(fn), exist_ok=True)
+        with open(fn, "wb") as f:
+            pickle.dump(features, f)
+        if self.verbose:
+            print(f"wrote features to {fn}")
+
+    def load_cached_features(self, target_geo_grain) -> Dict:
+        fn = f"{self.feature_cache_path}/{type(self).__name__}_{self.decennial_census_year}.pkl"
+        with open(fn, "rb") as f:
+            return pickle.load(f)[target_geo_grain]
