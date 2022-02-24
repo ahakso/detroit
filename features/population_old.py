@@ -38,6 +38,7 @@ class PopulationOld(Feature):
                 "filename": fn,
             },
             decennial_census_year=decennial_census_year,
+            **kwargs,
         )
         self.population_data_path = self.data_path.rstrip("/") + "/" + population_data_path.rstrip("/") + "/"
 

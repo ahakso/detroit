@@ -288,7 +288,5 @@ class Feature:
         with open(fn, "rb") as f:
             data = pickle.load(f)
         if data["class_definition_file_hash"] != current_hash:
-            warn(
-                f"{fn} was created with a different subclass definition file\nYou may want to rerun self.cache_features()"
-            )
+            warn(f"{fn} has changed since the cache was created\nYou may want to rerun self.cache_features()")
         return data[target_geo_grain]
