@@ -1,3 +1,5 @@
+import hashlib
+import inspect
 import os
 import pickle
 import pprint
@@ -266,6 +268,9 @@ class Feature:
     def cache_features(self) -> BinaryIO:
         """Creates a pickle file with a dict of the features at each grain"""
         features = {}
+        class_definition_file = inspect.getfile(self.__class__)
+        with open(class_definition_file, "rt") as f:
+            features["class_definition_file_hash"] = hashlib.md5(f.read().encode("utf-8")).hexdigest()
         for grain in ("block", "block group", "tract"):
             features[grain] = self.construct_feature(grain)
         fn = f"{self.feature_cache_path}/{type(self).__name__}_{self.decennial_census_year}.pkl"
@@ -277,5 +282,13 @@ class Feature:
 
     def load_cached_features(self, target_geo_grain) -> Dict:
         fn = f"{self.feature_cache_path}/{type(self).__name__}_{self.decennial_census_year}.pkl"
+
+        with open(inspect.getfile(self.__class__), "rt") as f:
+            current_hash = hashlib.md5(f.read().encode("utf-8")).hexdigest()
         with open(fn, "rb") as f:
-            return pickle.load(f)[target_geo_grain]
+            data = pickle.load(f)
+        if data["class_definition_file_hash"] != current_hash:
+            warn(
+                f"{fn} was created with a different subclass definition file\nYou may want to rerun self.cache_features()"
+            )
+        return data[target_geo_grain]
