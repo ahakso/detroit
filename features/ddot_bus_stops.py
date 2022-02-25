@@ -73,15 +73,12 @@ class ddotbusstops(Feature):
         stops = gpd.GeoDataFrame(
             df, geometry=gpd.points_from_xy(df.Longitude, df.Latitude), crs="epsg:4326"
         )
-        if use_lat_long:
-            if self.decennial_census_year == 2010:
-                warn("More accurate to use their block_id for 2010 census context")
-            stops.assign(
-                block_id=point_to_geo_id(
-                    stops.loc[:, ["oid", "geometry"]],
-                    self.decennial_census_year,
-                )
+        stops = stops.assign(
+            block_id=point_to_block_id(
+                stops.loc[:, ["oid", "geometry"]],
+                self.decennial_census_year,
             )
+        ).dropna(subset=["block_id"]).astype({'block_id':str})
         self.data = stops
         print(f"Loaded {self.data.shape[0] if sample_rows is None else sample_rows:,} rows of data")
 
