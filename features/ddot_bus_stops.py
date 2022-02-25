@@ -17,8 +17,9 @@ class ddotbusstops(Feature):
         "Shelter",
         "Bench",
         "Trash",
+        "StopID",
     ]
-    TYPES_bus_stops = [float, float, int, int, int]
+    TYPES_bus_stops = [float, float, int, int, int, int]
 
     def __init__(
         self,
@@ -26,7 +27,7 @@ class ddotbusstops(Feature):
     ) -> None:
         super().__init__(
             meta={
-                "feature_name": "DDOT_bus_stops",
+                "supported_features": "DDOT_bus_stops",
                 "box_url": "https://bloombergdotorg.box.com/s/o9cs59l0uzhfgia6k9xzi46gasyypgfx",
                 "source_url": "https://data.detroitmi.gov/datasets/ddot-bus-stops/explore",
                 "min_geo_grain": "lat/long",
@@ -37,7 +38,7 @@ class ddotbusstops(Feature):
 
     def __repr__(self) -> str:
         super_str = super().__repr__()
-        return "SMART bus stops\n\n" + super_str
+        return "DDOT bus stops\n\n" + super_str
 
     def load_data(
         self,
@@ -62,16 +63,15 @@ class ddotbusstops(Feature):
 
         # use a generator function to select rows we want in chunks rather than loading everything into memory at once
 
-        generator = pd.read_csv(
+        df = pd.read_csv(
             self.data_path + self.meta.get("filename"),
             nrows=sample_rows,
             usecols=self.COLS_bus_stops,
-            chunksize=1e4,
             dtype=dict(zip(self.COLS_bus_stops, self.TYPES_bus_stops)),
         )
 
         stops = gpd.GeoDataFrame(
-            generator, geometry=gpd.points_from_xy(generator.Longitude, generator.Latitude), crs="epsg:4326"
+            df, geometry=gpd.points_from_xy(df.Longitude, df.Latitude), crs="epsg:4326"
         )
         if use_lat_long:
             if self.decennial_census_year == 2010:
@@ -103,6 +103,6 @@ class ddotbusstops(Feature):
         By default, will load and cleanse data if not already done
         """
         bus_stops = (
-            self.assign_geo_column(target_geo_grain).groupby("geo").oid.count().rename(self.meta.get("feature_name"))
+            self.assign_geo_column(target_geo_grain).groupby("geo").oid.count()
         )
         return bus_stops.reindex(self.index)

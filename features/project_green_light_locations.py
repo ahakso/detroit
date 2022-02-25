@@ -17,8 +17,9 @@ class projectgreenlightlocations(Feature):
         "business_type",
         "precinct",
         "live_date",
+        "ObjectId",
     ]
-    TYPES_green_light_loc = [float, float, str, int, str]
+    TYPES_green_light_loc = [float, float, str, int, str, int]
 
     def __init__(
         self,
@@ -26,7 +27,7 @@ class projectgreenlightlocations(Feature):
     ) -> None:
         super().__init__(
             meta={
-                "feature_name": "Project_Green_Light_Locations",
+                "supported_features": "Project_Green_Light_Locations",
                 "box_url": "https://bloombergdotorg.box.com/s/a9sn1hbdb6bahuwkyk2515y508iuls6f",
                 "source_url": "https://data.detroitmi.gov/datasets/project-green-light-locations/explore?location=42.362386%2C-83.100770%2C11.18",
                 "min_geo_grain": "lat/long",
@@ -59,16 +60,15 @@ class projectgreenlightlocations(Feature):
 
         # use a generator function to select rows we want in chunks rather than loading everything into memory at once
 
-        generator = pd.read_csv(
+        df = pd.read_csv(
             self.data_path + self.meta.get("filename"),
             nrows=sample_rows,
             usecols=self.COLS_green_light_loc,
-            chunksize=1e4,
             dtype=dict(zip(self.COLS_green_light_loc, self.TYPES_green_light_loc)),
         )
 
         locations = gpd.GeoDataFrame(
-            generator, geometry=gpd.points_from_xy(generator.X, generator.Y), crs="epsg:4326"
+            df, geometry=gpd.points_from_xy(df.X, df.Y), crs="epsg:4326"
         )
         if use_lat_long:
             if self.decennial_census_year == 2010:
@@ -100,6 +100,6 @@ class projectgreenlightlocations(Feature):
         By default, will load and cleanse data if not already done
         """
         green_light_locations = (
-            self.assign_geo_column(target_geo_grain).groupby("geo").oid.count().rename(self.meta.get("feature_name"))
+            self.assign_geo_column(target_geo_grain).groupby("geo").oid.count()
         )
         return green_light_locations.reindex(self.index)
