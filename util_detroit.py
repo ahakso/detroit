@@ -16,13 +16,13 @@ def point_to_geo_id(
     block_data_path: Optional[str] = "./",
     blocks: Optional[gpd.GeoDataFrame] = None,
 ) -> gpd.GeoSeries:
-    """Return the geo ids for each row with a Point, with index of df
+    """Return the geo ids for each row in the `geometry` column with a Point. <Returned serie>.index==df.index
 
     A unique identifier column "oid" for df is required to drop duplicates. If you don't have one, just assign one using .assign(oid=range(df.shape[0]))
 
     Args:
         df: DataFrame with a geometry column of type Point
-        census_year: Year of the census data to use
+        census_year: Year of the census data to use when looking up and returning block data
         block_data_path: Path to the census block data
         blocks: Optional GeoDataFrame of census blocks to avoid a load
 

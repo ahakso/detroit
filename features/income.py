@@ -10,7 +10,7 @@ from features.feature_constructor import Feature, cleanse_decorator, data_loader
 class Income(Feature):
     def __repr__(self) -> str:
         super_str = super().__repr__()
-        return "2010 census income statistics\n\n" + super_str
+        return "2019 American Community Survey income statistics\n\n" + super_str
 
     def __init__(
         self,
@@ -19,7 +19,7 @@ class Income(Feature):
         super().__init__(
             meta={
                 "supported_features": ("mean_household_income", "per_capita_income"),
-                "box_url": "",
+                "box_url": "https://bloombergdotorg.box.com/s/uuxakh9mt0b19zbadcyudoxyz1fufkhs",
                 "source_url": "https://data.census.gov/cedsci/table?q=income&g=0500000US26163%241400000",
                 "min_geo_grain": "tract",
                 "filename": "productDownload_2022-02-15T172253/ACSST5Y2019.S1902_data_with_overlays_2022-02-15T172238.csv",
@@ -57,4 +57,4 @@ class Income(Feature):
 
     @data_loader
     def construct_feature(self, target_geo_grain: str = "block") -> pd.DataFrame:
-        return self.assign_geo_column(target_geo_grain).set_index("geo")
+        return self.assign_geo_column(target_geo_grain).set_index("geo").reindex(self.index).drop(columns=["geo_id"])
