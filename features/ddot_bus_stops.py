@@ -45,15 +45,8 @@ class ddotbusstops(Feature):
         sample_rows: Optional[int] = None,
         use_lat_long: bool = False,
     ) -> None:
-        """Bring in the granular data as an attribute of the class of type gpd.GeoDataframe: self.data
-
-        Arguments:
-            sample_rows -- Small file with the only useful row info is bus stop location
-            use_lat_long -- use coordinates and census tracts rather than assigned ID. If using 2010 census, it's more accurate to use their id
-            call_whitelist_strings: determines the whitelist filter on call descriptions. Pass 'close_proxy', 'near_proxy', or a list of custom whitelist strings
-        
+        """
         Data Notes:
-            Has no overlapping stops with the SMART bus stops based on lat/lon matching.
 
             5546 total stops
             1148 with trash bins
