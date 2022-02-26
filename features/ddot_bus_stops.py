@@ -72,19 +72,19 @@ class ddotbusstops(Feature):
 
         stops = gpd.GeoDataFrame(
             df, geometry=gpd.points_from_xy(df.Longitude, df.Latitude), crs="epsg:4326"
-        )
+        ).rename(columns={"StopID": "oid"})
         stops = stops.assign(
-            block_id=point_to_block_id(
+            block_id=point_to_geo_id(
                 stops.loc[:, ["oid", "geometry"]],
                 self.decennial_census_year,
             )
-        ).dropna(subset=["block_id"]).astype({'block_id':str})
+        ).dropna(subset=["block_id"]).astype({'block_id':float}).rename(columns={"block_id": "geo_id"})
         self.data = stops
         print(f"Loaded {self.data.shape[0] if sample_rows is None else sample_rows:,} rows of data")
 
     @cleanse_decorator
     def cleanse_data(self) -> None:
-        self.clean_data = self.data.copy().dropna(subset=["block_id"])
+        self.clean_data = self.data.copy().dropna(subset=["geo_id"])
         return self.clean_data
 
     @classmethod

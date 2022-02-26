@@ -69,22 +69,21 @@ class projectgreenlightlocations(Feature):
 
         locations = gpd.GeoDataFrame(
             df, geometry=gpd.points_from_xy(df.X, df.Y), crs="epsg:4326"
-        )
-        if use_lat_long:
-            if self.decennial_census_year == 2010:
-                warn("More accurate to use their block_id for 2010 census context")
-            locations.assign(
-                block_id=point_to_geo_id(
-                    locations.loc[:, ["oid", "geometry"]],
-                    self.decennial_census_year,
-                )
+        ).rename(columns={"ObjectId": "oid"})
+
+        locations = locations.assign(
+            block_id=point_to_geo_id(
+                locations.loc[:, ["oid", "geometry"]],
+                self.decennial_census_year,
             )
+        ).astype({'block_id':float}).rename(columns={"block_id": "geo_id"})
+
         self.data = locations
         print(f"Loaded {self.data.shape[0] if sample_rows is None else sample_rows:,} rows of data")
 
     @cleanse_decorator
     def cleanse_data(self) -> None:
-        self.clean_data = self.data.copy().dropna(subset=["block_id"])
+        self.clean_data = self.data.copy().dropna(subset=["geo_id"])
         return self.clean_data
 
     @classmethod
