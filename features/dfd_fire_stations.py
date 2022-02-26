@@ -11,12 +11,12 @@ from features.feature_constructor import Feature, cleanse_decorator, data_loader
 
 class dfdfirestations(Feature):
     # Only read in the columns we want
-    COLS_bus_stops = [
+    COLS_fire_stations = [
         "Lat",
         "Long",
         "FID",
     ]
-    TYPES_bus_stops = [float, float, int]
+    TYPES_fire_stations = [float, float, int]
 
     def __init__(
         self,
@@ -25,10 +25,10 @@ class dfdfirestations(Feature):
         super().__init__(
             meta={
                 "supported_features": "DFD Fire Stations Locations",
-                "box_url": "",
+                "box_url": "https://bloombergdotorg.box.com/s/jolyncbdjpqcbg475q3vg7dm71gq9fm0",
                 "source_url": "https://data.detroitmi.gov/datasets/dfd-fire-station-locations/explore",
                 "min_geo_grain": "lat/long",
-                "filename": "open_data/DFD_Fire_Station_locations.csv",
+                "filename": "open_data/DFD_Fire_Station_Locations.csv",
             },
             **kwargs,
         )
@@ -57,12 +57,12 @@ class dfdfirestations(Feature):
         df = pd.read_csv(
             self.data_path + self.meta.get("filename"),
             nrows=sample_rows,
-            usecols=self.COLS_bus_stops,
-            dtype=dict(zip(self.COLS_bus_stops, self.TYPES_bus_stops)),
+            usecols=self.COLS_fire_stations,
+            dtype=dict(zip(self.COLS_fire_stations, self.TYPES_fire_stations)),
         )
 
         stations = gpd.GeoDataFrame(
-            df, geometry=gpd.points_from_xy(df.Long, df.Lat), crs="epsg:4326"
+            df, geometry=gpd.points_from_xy(df.Lat, df.Long), crs="epsg:4326"
         ).rename(columns={"FID": "oid"})
         stations = stations.assign(
             block_id=point_to_geo_id(
@@ -70,7 +70,7 @@ class dfdfirestations(Feature):
                 self.decennial_census_year,
             )
         ).dropna(subset=["block_id"]).astype({'block_id':float}).rename(columns={"block_id": "geo_id"})
-        self.data = stops
+        self.data = stations
         print(f"Loaded {self.data.shape[0] if sample_rows is None else sample_rows:,} rows of data")
 
     @cleanse_decorator
