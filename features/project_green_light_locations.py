@@ -9,7 +9,7 @@ from util_detroit import point_to_geo_id
 from features.feature_constructor import Feature, cleanse_decorator, data_loader
 
 
-class projectgreenlightlocations(Feature):
+class ProjectGreenlightLocations(Feature):
     # Only read in the columns we want
     COLS_green_light_loc = [
         "X",
@@ -45,7 +45,7 @@ class projectgreenlightlocations(Feature):
         sample_rows: Optional[int] = None,
         use_lat_long: bool = False,
     ) -> None:
-        """        
+        """
         Data Notes:
         * Business types: 'Retail', 'Services', 'Residential', 'Restaurant / Bar', 'Community', 'Party / Liquor Store'
         * Precint: 2-12
@@ -61,16 +61,20 @@ class projectgreenlightlocations(Feature):
             dtype=dict(zip(self.COLS_green_light_loc, self.TYPES_green_light_loc)),
         )
 
-        locations = gpd.GeoDataFrame(
-            df, geometry=gpd.points_from_xy(df.X, df.Y), crs="epsg:4326"
-        ).rename(columns={"ObjectId": "oid"})
+        locations = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.X, df.Y), crs="epsg:4326").rename(
+            columns={"ObjectId": "oid"}
+        )
 
-        locations = locations.assign(
-            block_id=point_to_geo_id(
-                locations.loc[:, ["oid", "geometry"]],
-                self.decennial_census_year,
+        locations = (
+            locations.assign(
+                block_id=point_to_geo_id(
+                    locations.loc[:, ["oid", "geometry"]],
+                    self.decennial_census_year,
+                )
             )
-        ).astype({'block_id':float}).rename(columns={"block_id": "geo_id"})
+            .astype({"block_id": float})
+            .rename(columns={"block_id": "geo_id"})
+        )
 
         self.data = locations
         print(f"Loaded {self.data.shape[0] if sample_rows is None else sample_rows:,} rows of data")
@@ -92,7 +96,5 @@ class projectgreenlightlocations(Feature):
 
         By default, will load and cleanse data if not already done
         """
-        green_light_locations = (
-            self.assign_geo_column(target_geo_grain).groupby("geo").oid.count()
-        )
+        green_light_locations = self.assign_geo_column(target_geo_grain).groupby("geo").oid.count()
         return green_light_locations.reindex(self.index)

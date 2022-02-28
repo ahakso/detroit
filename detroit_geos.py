@@ -58,7 +58,7 @@ def get_detroit_census_geos(
     # Filter to inclusion params:
     df = df.loc[df[inclusion_grain + "_" + inclusion_criteria] == 1, ["block_id", "geometry"]]
     if target_geo_grain != "block":
-        column_aggs = {"longitude": "mean", "latitude": "mean"} if decennial_census_year == 2010 else "mean"
+        column_aggs = "mean"
         df = df.assign(
             geo_id=lambda x: x.block_id // 10 ** (GEO_GRAIN_LEN_MAP["block"] - GEO_GRAIN_LEN_MAP[target_geo_grain])
         )

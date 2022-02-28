@@ -9,7 +9,7 @@ from util_detroit import point_to_geo_id
 from features.feature_constructor import Feature, cleanse_decorator, data_loader
 
 
-class ddotbusstops(Feature):
+class DDotBusStops(Feature):
     # Only read in the columns we want
     COLS_bus_stops = [
         "Latitude",
@@ -63,15 +63,20 @@ class ddotbusstops(Feature):
             dtype=dict(zip(self.COLS_bus_stops, self.TYPES_bus_stops)),
         )
 
-        stops = gpd.GeoDataFrame(
-            df, geometry=gpd.points_from_xy(df.Longitude, df.Latitude), crs="epsg:4326"
-        ).rename(columns={"StopID": "oid"})
-        stops = stops.assign(
-            block_id=point_to_geo_id(
-                stops.loc[:, ["oid", "geometry"]],
-                self.decennial_census_year,
+        stops = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.Longitude, df.Latitude), crs="epsg:4326").rename(
+            columns={"StopID": "oid"}
+        )
+        stops = (
+            stops.assign(
+                block_id=point_to_geo_id(
+                    stops.loc[:, ["oid", "geometry"]],
+                    self.decennial_census_year,
+                )
             )
-        ).dropna(subset=["block_id"]).astype({'block_id':float}).rename(columns={"block_id": "geo_id"})
+            .dropna(subset=["block_id"])
+            .astype({"block_id": float})
+            .rename(columns={"block_id": "geo_id"})
+        )
         self.data = stops
         print(f"Loaded {self.data.shape[0] if sample_rows is None else sample_rows:,} rows of data")
 
@@ -92,7 +97,5 @@ class ddotbusstops(Feature):
 
         By default, will load and cleanse data if not already done
         """
-        bus_stops = (
-            self.assign_geo_column(target_geo_grain).groupby("geo").oid.count()
-        )
+        bus_stops = self.assign_geo_column(target_geo_grain).groupby("geo").oid.count()
         return bus_stops.reindex(self.index)
