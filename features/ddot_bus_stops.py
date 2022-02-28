@@ -43,7 +43,6 @@ class DDotBusStops(Feature):
     def load_data(
         self,
         sample_rows: Optional[int] = None,
-        use_lat_long: bool = False,
     ) -> None:
         """
         Data Notes:
