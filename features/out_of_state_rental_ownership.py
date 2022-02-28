@@ -53,6 +53,5 @@ class OutOfStateRentalOwnership(Feature):
         return (
             self.assign_geo_column(target_geo_grain)
             .groupby("geo")
-            .apply(lambda df: (df.owner_state != "MI") / df.shape[0])
-            .reset_index(level=-1, drop=True)
-        )
+            .apply(lambda df: (df.owner_state != "MI").sum() / df.shape[0])
+        ).reindex(self.index)
