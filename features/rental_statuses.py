@@ -9,16 +9,16 @@ from util_detroit import point_to_geo_id
 from features.feature_constructor import Feature, cleanse_decorator, data_loader
 
 
-class rentalstatuses(Feature):
+class RentalStatuses(Feature):
     # Only read in the columns we want
-    COLS_rentals = [
+    COLS_RENTALS = [
         "X",
         "Y",
         "date_status",
         "record_type",
         "oid",
     ]
-    TYPES_rentals = [float, float, str, str, int]
+    TYPES_RENTALS = [float, float, str, str, int]
 
     def __init__(
         self,
@@ -42,30 +42,25 @@ class rentalstatuses(Feature):
     def load_data(
         self,
         sample_rows: Optional[int] = None,
-        use_lat_long: bool = False,
     ) -> None:
         """
         kept record_type but unsure how to use it yet, has 3 values: Registion Only, Initial Registration, and Renewal Registration
-
         """
 
         df = pd.read_csv(
             self.data_path + self.meta.get("filename"),
             nrows=sample_rows,
-            usecols=self.COLS_rentals,
-            dtype=dict(zip(self.COLS_rentals, self.TYPES_rentals)),
+            usecols=self.COLS_RENTALS,
+            dtype=dict(zip(self.COLS_RENTALS, self.TYPES_RENTALS)),
         )
 
-        rentals = gpd.GeoDataFrame(
-            df, geometry=gpd.points_from_xy(df.X, df.Y), crs="epsg:4326"
-        )
-        rentals = rentals.assign(
-            block_id=point_to_geo_id(
+        rentals = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.X, df.Y), crs="epsg:4326")
+        self.data = rentals.assign(
+            geo_id=point_to_geo_id(
                 rentals.loc[:, ["oid", "geometry"]],
                 self.decennial_census_year,
             )
-        ).astype({'block_id':float}).rename(columns={"block_id": "geo_id"})
-        self.data = rentals
+        ).astype({"geo_id": float})
         print(f"Loaded {self.data.shape[0] if sample_rows is None else sample_rows:,} rows of data")
 
     @cleanse_decorator
@@ -85,7 +80,5 @@ class rentalstatuses(Feature):
 
         By default, will load and cleanse data if not already done
         """
-        rentals = (
-            self.assign_geo_column(target_geo_grain).groupby("geo").oid.count()
-        )
+        rentals = self.assign_geo_column(target_geo_grain).groupby("geo").oid.count()
         return rentals.reindex(self.index)
