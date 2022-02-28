@@ -10,6 +10,8 @@ def get_detroit_census_geos(
     data_path: str = "./",
     target_geo_grain: Optional[str] = "block",
     return_polygons: Optional[bool] = True,
+    inclusion_grain: Optional[str] = "block",
+    inclusion_criteria: Optional[str] = "intersects",
 ) -> gpd.GeoDataFrame:
     """
     Returns a geometries of the census polygons in Detroit for the given decennial census year.
@@ -17,23 +19,44 @@ def get_detroit_census_geos(
     2010 census blocks are available from the following URL: https://www.census.gov/cgi-bin/geo/shapefiles/index.php?year=2010&layergroup=Blocks
     2020 census blocks are available from the following URL: https://www2.census.gov/geo/tiger/TIGER2020/TABBLOCK20/
 
-    The shape files read in are available on box, and include only polygons at least partially intersecting the city of
+    The shape files read in are available on box, and include only polygons with blocks at least partially intersecting the city of
     Detroit polygon, as defined in kx-city-of-detroit-michigan-city-boundary-SHP/city-of-detroit-michigan-city-boundary.shp,
     which was sourced from the following URL: https://koordinates.com/search/?q=detroit+city+boundary
     For generation of this file, see the section 'Census blocks in city boundaries' in the notebook census_blocks.ipynb in this repo.
 
+    Geos are filtered by the inclusion_grain and inclusion_criteria parameters.
+
     Args:
         decennial_census_year -- The decennial census year to get the census blocks for.
         target_geo_grain -- The target geo grain to return. If None, return blocks
-
+        return_polygons -- If True, return the geometry column, otherwise avoid computational overhead of dissolving polygons
+        inclusion_grain -- Determines which spatial grain the inclusion critera operates on. Must be one of (block, block_group, tract)
+        inclusion_criteria -- whether the inclusion_grain must be completely within detroit, or just touching.
+            Must be one of ('intersects', 'within')
     """
-    if decennial_census_year == 2010:
-        df = gpd.read_file(data_path + "detroit_census_blocks_2010/blocks_in_detroit.shp")
-    elif decennial_census_year == 2020:
-        df = gpd.read_file(data_path + "detroit_census_blocks_2020/blocks_in_detroit_2020.shp")
-    else:
-        raise ValueError(f"decennial_census_year must be 2010 or 2020")
-    df = df.to_crs("epsg:4326").astype({"block_id": float})
+    colmap = {
+        "block_id": "block_id",
+        "tract_id": "tract_id",
+        "bg_id": "block_group_id",
+        "block_x": "block_intersects",
+        "block_in": "block_within",
+        "tract_x": "tract_intersects",
+        "tract_in": "tract_within",
+        "bg_x": "block_group_intersects",
+        "bg_in": "block_group_within",
+        "geometry": "geometry",
+    }
+
+    df = (
+        gpd.read_file(
+            data_path + f"detroit_census_blocks_{decennial_census_year}/geos_in_detroit_{decennial_census_year}.shp"
+        )
+        .to_crs("epsg:4326")
+        .astype({"block_id": float})
+        .rename(columns=colmap)
+    )
+    # Filter to inclusion params:
+    df = df.loc[df[inclusion_grain + "_" + inclusion_criteria] == 1, ["block_id", "geometry"]]
     if target_geo_grain != "block":
         column_aggs = {"longitude": "mean", "latitude": "mean"} if decennial_census_year == 2010 else "mean"
         df = df.assign(
