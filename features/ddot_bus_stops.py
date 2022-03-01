@@ -98,5 +98,5 @@ class DDotBusStops(Feature):
 
         By default, will load and cleanse data if not already done
         """
-        bus_stops = self.assign_geo_column(target_geo_grain).groupby("geo").oid.count()
+        bus_stops = self.assign_geo_column(target_geo_grain).groupby("geo").oid.count().rename("bus_stops")
         return bus_stops.reindex(self.index)

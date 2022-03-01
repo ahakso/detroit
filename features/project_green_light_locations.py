@@ -96,5 +96,7 @@ class ProjectGreenlightLocations(Feature):
 
         By default, will load and cleanse data if not already done
         """
-        green_light_locations = self.assign_geo_column(target_geo_grain).groupby("geo").oid.count()
+        green_light_locations = (
+            self.assign_geo_column(target_geo_grain).groupby("geo").oid.count().rename("greenlights")
+        )
         return green_light_locations.reindex(self.index)
