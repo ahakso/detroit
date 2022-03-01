@@ -252,7 +252,13 @@ class Feature:
             lambda x: x * 10 ** (target_len - (np.floor(np.log10(x)) + 1))
         )
 
-    def remove_geos_outside_detroit(self, df, target_geo_grain: Optional[str] = None):
+    def remove_geos_outside_detroit(
+        self,
+        df,
+        target_geo_grain: Optional[str] = None,
+        inclusion_grain: Optional[str] = "block",
+        inclusion_criteria: Optional[str] = "intersects",
+    ):
         """
         Removes geos outside of detroit. Useful in the load_data() method when data contains geos we don't want
 
@@ -261,7 +267,12 @@ class Feature:
         if target_geo_grain is None:
             target_geo_grain = self.meta.get("min_geo_grain")
         geos_in_detroit = get_detroit_census_geos(
-            self.decennial_census_year, self.data_path, target_geo_grain, return_polygons=False
+            self.decennial_census_year,
+            self.data_path,
+            target_geo_grain,
+            return_polygons=False,
+            inclusion_grain=inclusion_grain,
+            inclusion_criteria=inclusion_criteria,
         ).loc[:, ["geo_id"]]
         return pd.merge(df, geos_in_detroit, on="geo_id", how="inner")
 

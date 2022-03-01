@@ -82,7 +82,9 @@ class Population(Feature):
                 .astype({"geo_id": float})
             )
 
-        self.data = self.remove_geos_outside_detroit(self.data)
+        self.data = self.remove_geos_outside_detroit(
+            self.data, target_geo_grain="block", inclusion_grain="tract", inclusion_criteria="intersects"
+        )
         if self.data.population.dtype == "object":
             self.data = self.data.assign(population=lambda x: x.population.apply(lambda x: x.split("(")[0]))
         self.data = self.data.astype({"population": int})
