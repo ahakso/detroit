@@ -29,14 +29,18 @@ class Population(Feature):
             fn = "nhgis0002_ds248_2020_block.csv"
         else:
             raise ValueError("Year must be 2010 or 2020")
-        super().__init__(
-            meta={
+        if "meta" in kwargs:
+            meta = kwargs.pop("meta")
+        else:
+            meta = {
                 "supported_features": ("population",),
                 "box_url": box_url,
                 "source_url": source_url,
                 "min_geo_grain": "block",
                 "filename": fn,
-            },
+            }
+        super().__init__(
+            meta=meta,
             decennial_census_year=decennial_census_year,
             **kwargs,
         )
