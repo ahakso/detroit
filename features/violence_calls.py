@@ -133,4 +133,4 @@ class ViolenceCalls(Feature):
             features = self.meta.get("supported_features")
         if "violence_calls" in features:
             n_violent_calls = self.assign_geo_column(target_geo_grain).groupby("geo").oid.count()
-            return n_violent_calls.reindex(self.index).to_frame(name="violence_calls")
+            return n_violent_calls.reindex(self.index).to_frame(name="violence_calls").fillna(0)
