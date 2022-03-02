@@ -16,7 +16,7 @@ def point_to_geo_id(
     block_data_path: Optional[str] = "./",
     blocks: Optional[gpd.GeoDataFrame] = None,
 ) -> gpd.GeoSeries:
-    """Return the geo ids for each row in the `geometry` column with a Point. <Returned serie>.index==df.index
+    """Return the geo ids for each row in the `geometry` column with a Point. <Returned series>.index==df.index
 
     A unique identifier column "oid" for df is required to drop duplicates. If you don't have one, just assign one using .assign(oid=range(df.shape[0]))
 
@@ -116,3 +116,20 @@ def get_normalized_time_series(df, background_rate):
         .set_index("days_since_live")
         .response
     )
+
+
+def concatenate_features(feature_objects, target_geo_grain):
+    """Each feature object must have a cached version available"""
+    feat_list = []
+    assert np.all([f.decennial_census_year == 2010 for f in feature_objects]), "inconsistent census year"
+
+    for obj in feature_objects:
+        feat = obj.load_cached_features(target_geo_grain)
+        feat_list.append(feat)
+
+    feat_df = pd.concat(
+        feat_list,
+        axis=1,
+    )
+
+    return feat_df.assign(violence_calls=lambda x: x.violence_calls.fillna(0))
