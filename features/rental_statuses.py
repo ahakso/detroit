@@ -80,5 +80,5 @@ class RentalStatuses(Feature):
 
         By default, will load and cleanse data if not already done
         """
-        rentals = self.assign_geo_column(target_geo_grain).groupby("geo").oid.count()
-        return rentals.reindex(self.index)
+        rentals = self.assign_geo_column(target_geo_grain).groupby("geo").oid.count().rename("rental_counts")
+        return rentals.reindex(self.index).fillna(0)

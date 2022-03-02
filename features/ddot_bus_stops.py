@@ -86,10 +86,6 @@ class DDotBusStops(Feature):
         self.clean_data = self.data.copy().dropna(subset=["geo_id"])
         return self.clean_data
 
-    @classmethod
-    def null_handler(s: pd.Series) -> pd.Series:
-        return s.fillna(0)
-
     @data_loader
     def construct_feature(self, target_geo_grain: str) -> pd.Series:
         """Return a Series of counts of stops by geo entity
@@ -99,4 +95,4 @@ class DDotBusStops(Feature):
         By default, will load and cleanse data if not already done
         """
         bus_stops = self.assign_geo_column(target_geo_grain).groupby("geo").oid.count().rename("bus_stops")
-        return bus_stops.reindex(self.index)
+        return bus_stops.reindex(self.index).fillna(0)

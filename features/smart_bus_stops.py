@@ -55,15 +55,20 @@ class smartbusstops(Feature):
             dtype=dict(zip(self.COLS_bus_stops, self.TYPES_bus_stops)),
         )
 
-        stops = gpd.GeoDataFrame(
-            df, geometry=gpd.points_from_xy(df.stop_lon, df.stop_lat), crs="epsg:4326"
-        ).rename(columns={"stop_id": "oid"})
-        stops = stops.assign(
-            block_id=point_to_geo_id(
-                stops.loc[:, ["oid", "geometry"]],
-                self.decennial_census_year,
+        stops = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.stop_lon, df.stop_lat), crs="epsg:4326").rename(
+            columns={"stop_id": "oid"}
+        )
+        stops = (
+            stops.assign(
+                block_id=point_to_geo_id(
+                    stops.loc[:, ["oid", "geometry"]],
+                    self.decennial_census_year,
+                )
             )
-        ).dropna(subset=["block_id"]).astype({'block_id':float}).rename(columns={"block_id": "geo_id"})
+            .dropna(subset=["block_id"])
+            .astype({"block_id": float})
+            .rename(columns={"block_id": "geo_id"})
+        )
         self.data = stops
         print(f"Loaded {self.data.shape[0] if sample_rows is None else sample_rows:,} rows of data")
 
@@ -84,7 +89,5 @@ class smartbusstops(Feature):
 
         By default, will load and cleanse data if not already done
         """
-        bus_stops = (
-            self.assign_geo_column(target_geo_grain).groupby("geo").oid.count()
-        )
-        return bus_stops.reindex(self.index)
+        bus_stops = self.assign_geo_column(target_geo_grain).groupby("geo").oid.count()
+        return bus_stops.reindex(self.index).fillna(0).rename("smart_bus_stops")
