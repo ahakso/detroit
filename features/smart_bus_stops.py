@@ -9,7 +9,7 @@ from util_detroit import point_to_geo_id
 from features.feature_constructor import Feature, cleanse_decorator, data_loader
 
 
-class smartbusstops(Feature):
+class SmartBusStops(Feature):
     # Only read in the columns we want
     COLS_bus_stops = [
         "stop_lat",
