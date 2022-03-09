@@ -103,7 +103,7 @@ class ViolenceCalls(Feature):
         if use_lat_long:
             if self.decennial_census_year == 2010:
                 warn("More accurate to use their block_id for 2010 census context")
-            calls.assign(
+            calls = calls.assign(
                 geo_id=point_to_geo_id(
                     calls.loc[:, ["oid", "geometry"]],
                     self.decennial_census_year,
