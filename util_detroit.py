@@ -121,7 +121,9 @@ def get_normalized_time_series(df, background_rate):
 def concatenate_features(feature_objects, target_geo_grain):
     """Each feature object must have a cached version available"""
     feat_list = []
-    assert np.all([f.decennial_census_year == 2010 for f in feature_objects]), "inconsistent census year"
+    assert np.all(
+        [f.decennial_census_year == feature_objects[0].decennial_census_year for f in feature_objects]
+    ), "inconsistent census years"
 
     for obj in feature_objects:
         feat = obj.load_cached_features(target_geo_grain)

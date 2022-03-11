@@ -1,6 +1,9 @@
-from typing import Optional
+from typing import Optional, Union
 
 import geopandas as gpd
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 
 from constants import GEO_GRAIN_LEN_MAP
 
@@ -30,7 +33,7 @@ def get_detroit_census_geos(
         decennial_census_year -- The decennial census year to get the census blocks for.
         target_geo_grain -- The target geo grain to return. If None, return blocks
         return_polygons -- If True, return the geometry column, otherwise avoid computational overhead of dissolving polygons
-        inclusion_grain -- Determines which spatial grain the inclusion critera operates on. Must be one of (block, block_group, tract)
+        inclusIOn_grain -- Determines which spatial grain the inclusion critera operates on. Must be one of (block, block_group, tract)
         inclusion_criteria -- whether the inclusion_grain must be completely within detroit, or just touching.
             Must be one of ('intersects', 'within')
     """
@@ -83,3 +86,59 @@ def get_detroit_boundaries():
     sourced from the following URL: https://koordinates.com/search/?q=detroit+city+boundary
     """
     return gpd.read_file("kx-city-of-detroit-michigan-city-boundary-SHP/city-of-detroit-michigan-city-boundary.shp")
+
+
+def attach_polygons(
+    df: Union[gpd.GeoDataFrame, gpd.GeoSeries, pd.Series, pd.DataFrame],
+    polygons_df: Optional[gpd.GeoDataFrame] = None,
+    decennial_census_year: Optional[int] = 2010,
+) -> gpd.GeoDataFrame:
+    """
+    Attaches the census polygons to the target geos.
+
+    Args:
+        df -- The target geos to attach the polygons to. Must have index of geo_id
+
+    the polygons are retrieved at the grain of the geo_id index inclusion_grain, at the tract intersection level.
+    If you need a specific inclusion_grain or inclusion_criteria, you'll need to pass the optional `polygons`
+    GeoDataFrame
+    """
+    if isinstance(df, pd.Series) or isinstance(df, gpd.GeoSeries):
+        df = df.to_frame()
+    n_index_digits = np.floor(np.log10(df.index.values[0])) + 1
+    if (not isinstance(df.index.values[0], float)) or (n_index_digits not in GEO_GRAIN_LEN_MAP.values()):
+        raise ValueError("df must have float index of geo_ids")
+    polygon_grain = {v: k for k, v in GEO_GRAIN_LEN_MAP.items()}.get(n_index_digits)
+    if polygons_df is None:
+        polygons_df = get_detroit_census_geos(
+            decennial_census_year=decennial_census_year,
+            data_path="./",
+            target_geo_grain=polygon_grain,
+            return_polygons=True,
+            inclusion_grain="tract",
+            inclusion_criteria="intersects",
+        ).set_index("geo_id")
+    if np.floor(np.log10(df.index.values[0])) != np.floor(np.log10(polygons_df.index.values[0])):
+        raise ValueError("Polygons must have same index grain as df")
+    return gpd.GeoDataFrame(df.merge(polygons_df.geometry, left_index=True, right_index=True, how="outer"))
+
+
+def nice_detroit_plot(
+    df: Union[gpd.GeoDataFrame, pd.Series, pd.DataFrame],
+    color_column: str,
+    ax=None,
+    polygons_df: Optional[gpd.GeoDataFrame] = None,
+    decennial_census_year: Optional[int] = 2010,
+    save_to_filename: Optional[str] = None,
+):
+    if ax is None:
+        fig, ax = plt.subplots(1, 1, figsize=(15, 8))
+    if "geometry" not in df.columns:
+        df = attach_polygons(df, decennial_census_year=decennial_census_year, polygons_df=polygons_df)
+    df.plot(color_column, ax=ax, legend=True)
+    ax.axes.xaxis.set_visible(False)
+    ax.axes.yaxis.set_visible(False)
+    ax.set_frame_on(False)
+    ax.set(title=color_column)
+    if save_to_filename is not None:
+        plt.savefig(save_to_filename, dpi=120, transparent=True)
