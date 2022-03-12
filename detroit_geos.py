@@ -131,8 +131,20 @@ def nice_detroit_plot(
     decennial_census_year: Optional[int] = 2010,
     save_to_filename: Optional[str] = None,
 ):
+    """Make a plot of census geos in detroit, colored by `color_column`
+
+    Removes lat/long tick labels, useless axes, etc
+
+    Args:
+        df: A dataframe indexed by the census geo
+        color_column: The column to color the geos by
+        ax: The axis to plot on (will generate a new one if None)
+        polygons_df: The census geos to plot. If None, will be retrieved from the detroit_census_geos function
+        decennial_census_year: The decennial census year to use.
+        save_to_filename: If not None, will not save the plot
+    """
     if ax is None:
-        fig, ax = plt.subplots(1, 1, figsize=(15, 8))
+        _, ax = plt.subplots(1, 1, figsize=(15, 8))
     if "geometry" not in df.columns:
         df = attach_polygons(df, decennial_census_year=decennial_census_year, polygons_df=polygons_df)
     df.plot(color_column, ax=ax, legend=True)
