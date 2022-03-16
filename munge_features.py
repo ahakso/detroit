@@ -1,7 +1,8 @@
+import numpy as np
 from sklearn.impute import SimpleImputer
 
 
-def transform_1(feat_df):
+def transform_1(feat_df, cols_to_log=["greenlight_density", "rental_density", "bus_density", "per_household_income"]):
     """The _1 is an id, just add transformers if you want to keep this one around
     Args:
         feat_df (pandas.DataFrame): The dataframe comprised of simply concatenated feature dataframes output by a feature class
@@ -25,17 +26,19 @@ def transform_1(feat_df):
         ]
     )
 
-    df = (
-        df.loc[lambda x: x.population >= 5]
+    df0 = (
+        df.loc[lambda x: x.population >= 10]
         .assign(
-            call_rate=lambda x: x.violence_calls / x.population,
+            # Convert to calls per 1k people per year
+            call_rate=lambda x: 1000 * (x.violence_calls / x.population) / 4.5,
             married_household_prop=lambda x: x.married_families / x.households,
             non_family_household_prop=lambda x: x.non_family_households / x.households,
             area=lambda df: df.population_density / df.population,
+            people_per_household=lambda x: (x.population / x.households).clip(upper=5),
+            greenlight_density=lambda x: x.greenlights / x.area,
             rental_density=lambda x: x.rental_counts / x.area,
             bus_density=lambda x: x.bus_stops / x.area,
-            greenlight_density=lambda x: x.greenlights / x.area,
-            people_per_household=lambda x: (x.population / x.households).clip(upper=5),
+            per_household_income=lambda x: x.per_household_income,
         )
         .drop(
             columns=[
@@ -54,6 +57,8 @@ def transform_1(feat_df):
             ]
         )
     )
+    df = df0.copy()
+    df[cols_to_log] = df[cols_to_log].apply(lambda x: np.log(x + 1))
 
     cols_with_nulls = df.isna().sum().loc[lambda x: x > 0].index
 
@@ -64,4 +69,4 @@ def transform_1(feat_df):
         ]
     )
 
-    return df
+    return df, df0
