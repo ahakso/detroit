@@ -15,4 +15,5 @@ COLNAME_MAP = {
     "per_household_income": "Per household income",
     "out_of_state_rental_ownership": "proportion of rental units owned out of state",
     "bus_stops": "Bus stops",
+    "Intercept": "Average Rate",
 }

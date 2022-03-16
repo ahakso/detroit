@@ -87,5 +87,7 @@ class HouseholdTypes(Feature):
         housing_types = self.assign_geo_column(target_geo_grain).groupby("geo")[self.features].sum().reindex(self.index)
 
         if self.verbose:
-            print(f"{housing_types.isna().sum()} of {housing_types.shape[0]} {target_geo_grain}s are unaccounted for")
+            print(
+                f"{housing_types.isna().sum(axis=1).astype(bool).sum()} of {housing_types.shape[0]} {target_geo_grain}s are unaccounted for"
+            )
         return housing_types.fillna(0)

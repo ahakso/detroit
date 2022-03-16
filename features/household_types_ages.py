@@ -18,7 +18,7 @@ class HouseholdTypesAges(Feature):
 
     def __init__(
         self,
-        decennial_census_year: Optional[int] = 2020,
+        decennial_census_year: Optional[int] = 2010,
         **kwargs,
     ) -> None:
         if decennial_census_year == 2020:
@@ -90,6 +90,6 @@ class HouseholdTypesAges(Feature):
 
         if self.verbose:
             print(
-                f"{household_types_ages.isna().sum()} of {household_types_ages.shape[0]} {target_geo_grain}s are unaccounted for"
+                f"{household_types_ages.isna().sum(axis=1).astype(bool).sum()} of {household_types_ages.shape[0]} {target_geo_grain}s are unaccounted for"
             )
         return household_types_ages.fillna(0)
