@@ -134,4 +134,4 @@ def concatenate_features(feature_objects, target_geo_grain):
         axis=1,
     )
 
-    return feat_df.assign(violence_calls=lambda x: x.violence_calls.fillna(0))
+    return feat_df
