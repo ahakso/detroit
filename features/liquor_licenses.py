@@ -95,4 +95,4 @@ class LiquorLicenses(Feature):
         By default, will load and cleanse data if not already done
         """
         stations = self.assign_geo_column(target_geo_grain).groupby("geo").number.nunique()
-        return stations.reindex(self.index)
+        return stations.reindex(self.index).fillna(0)
