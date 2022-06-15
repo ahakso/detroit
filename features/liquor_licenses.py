@@ -88,11 +88,11 @@ class LiquorLicenses(Feature):
 
     @data_loader
     def construct_feature(self, target_geo_grain: str) -> pd.Series:
-        """Return a Series of counts of stops by geo entity
+        """Return a Series of counts of liquor license counts by geo entity
 
         target_geo_grain should be one of "block", "block group", "tract"
 
         By default, will load and cleanse data if not already done
         """
         stations = self.assign_geo_column(target_geo_grain).groupby("geo").number.nunique()
-        return stations.reindex(self.index).fillna(0)
+        return stations.reindex(self.index).fillna(0).rename("liquor_licenses")
